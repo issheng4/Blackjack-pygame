@@ -1,0 +1,99 @@
+components
+    3 card locations
+        player's hand (visible)
+        dealer's hand (visible)
+        deck (hidden)
+    1 deck
+        52 cards
+            13 values [A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K]
+            4 suits [spades, clubs, hearts, diamonds]
+            (a card is an array that will look like [Q, hearts])
+    2 moves
+        hit
+        stand
+
+
+3 game outcomes for player
+    win against the dealer
+        having a hand with values higher than values of dealer's hand
+        dealer has a hand value over 21
+        having a hand with values that total 21 on first two cards, when the dealer does not (getting a blackjack)
+    lose against the dealer
+        having a hand value over 21
+        dealer's hand value higher than player's at end of round
+        dealer gets a blackjack and player does not
+    draw against dealer
+        having a hand with total equalling dealer's hand
+
+
+what card value corresponds to (value: score)
+    A: 11 if total <= 21, otherwise 1
+    2-10: 2-10
+    J, Q, K: 10
+
+
+game structure
+    rounds
+        turns
+            drawing cards
+
+
+round structure
+    shuffle deck
+    dealing
+        player gets 2 cards (visible)
+        dealer gets 1 card (visible) and 1 card (hidden)
+    if player total = 21 (has blackjack)
+        dealer reveals hidden card
+        if dealer total = 21
+            end round, player draws
+        else
+            end round, player wins
+    for player's turn
+        player chooses move
+        if move = stand
+            break
+        if move = hit
+            player's hand receives another card
+            if player hand total over 21
+                end round, player loses
+    dealer's turn
+        dealer reveals hidden card
+        if dealer total = 21 (has blackjack)
+            end round, player loses
+        if dealer hand values is A and 6 (won't stand on soft 17)
+            dealer makes move = hit
+        while dealer's hand total < 17
+            dealer makes move = hit
+            if dealer's hand > 21
+                end round, player wins
+    reviewing hands
+        if dealer's hand = player's hand
+            end round, player draws
+        elif dealer's hand > player's hand
+            end round, player loses
+        else
+            end round, player wins
+
+
+
+values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
+suits = ['spades', 'clubs', 'hearts', 'diamonds']
+
+
+deck = []
+for i in values:
+    for j in suits:
+        deck.append([i, j])
+
+
+def value_to_score(value):
+    if value == 'J' or 'Q' or 'K'
+        return 10
+    elif value == 'A'
+        return 11
+    else
+        return num(value)
+
+
+
