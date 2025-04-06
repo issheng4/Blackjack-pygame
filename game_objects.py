@@ -8,16 +8,16 @@ class Card:
         self.value = value
         self.suit = suit
     
-    def calculate_points(self, total):
+    def get_points(self, total):
         if self.value in ['J', 'Q', 'K']:
             return 10
         elif self.value == 'A':
-            if total <= 10:
+            if total + 11 <= 21:
                 return 11
             else:
                 return 1
         else:
-            return int(value)
+            return int(self.value)
         
     def __repr__(self):
         return f"Card('{self.value}', '{self.suit}')"
@@ -46,6 +46,25 @@ class Hand:
     def __init__(self):
         self.cards = []
 
+    def add_card(self, card):
+        self.cards.append(card)
+
+    def calculate_total(self):
+        total_points = 0
+        ace_count = 0
+
+        for card in self.cards:
+            total_points += card.get_points(total_points)
+            if card.value == 'A':
+                ace_count += 1
+
+        # adjusting total points for aces
+        for i in range(ace_count):
+            if total_points > 21:
+                total_points -= 10
+
+    def __repr__(self):
+        return f"Hand({self.cards})"
 
 
 class Person:
@@ -53,8 +72,14 @@ class Person:
         self.role = role # player or dealer
         self.name = name
         self.hand = Hand()
-        self.points_in_hand = 0
         self.games_won = 0
+
+    def draw_card(self, deck):
+        card = deck.deal_card()
+        self.hand.add_card(card)
+
+    def calculate_hand_total(self):
+        return self.hand.calculate_total()
 
     def __str__(self):
         return self.name
