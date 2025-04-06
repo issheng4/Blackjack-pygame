@@ -83,7 +83,7 @@ def perform_endgame(winner, winner_points, loser=0, loser_points=0):
         print()
         print()
         quit()
-    print(f'{winner} had {winner_points} // {loser} had {loser_points}')
+    print(f'{winner} has {winner_points} // {loser} has {loser_points}')
     print()
     print()
     quit()
