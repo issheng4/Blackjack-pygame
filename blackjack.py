@@ -1,58 +1,14 @@
-import random
-
-VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-SUITS = ['spades', 'clubs', 'hearts', 'diamonds']
-
-# populate deck
-deck = []
-for i in VALUES:
-    for j in SUITS:
-        deck.append((i, j))
+from game_objects import Card, Deck, Hand, Person
 
 
-# initialise player variables
-player_name = 'player'
-player_hand = []
-player_total = 0
-player_ace_eleven_count = 0
-
-# initialise dealer variables
-dealer_name = 'dealer'
-dealer_hand = []
-dealer_total = 0
-dealer_ace_eleven_count = 0
-
+# initialise class variables
+player = Person('player', 'Playerrr')
+dealer = Person('dealer', 'Dealerrr')
+deck = Deck()
 
 
 
 # helper functions:
-
-def receive_card(deck, hand, total, ace_as_eleven_count):
-    '''person receives card, including adding onto points and ace check'''
- 
-    def value_to_points(value):
-        '''convert value on card to points'''
-        if value in ['J', 'Q', 'K']:
-            return 10
-        elif value == 'A':
-            return 11
-        else:
-            return int(value)
-        
-    def update_ace_status(card, ace_as_eleven_count, total):
-        '''determine whether an Ace should score 1 or 11'''
-        if card == 'A':
-            ace_as_eleven_count += 1
-            if total > 21 and ace_as_eleven_count:
-                total -= 10
-                ace_as_eleven_count -= 1
-        return ace_as_eleven_count, total
-    
-    hand.append(deck.pop())
-    card = hand[-1][0]
-    total += value_to_points(card)
-    ace_as_eleven_count, total = update_ace_status(card, ace_as_eleven_count, total)
-    return deck, hand, total, ace_as_eleven_count
 
  
 def dialogue_next_line():
@@ -106,8 +62,6 @@ def show_dealer_hand():
 
 
 
-
-
 # PHASE 1: dealing
 
 print()
@@ -117,33 +71,35 @@ dialogue_next_line()
 
 
 # shuffle deck
-random.shuffle(deck)
+deck.shuffle()
+print(deck)
 
-deck, player_hand, player_total, player_ace_eleven_count = receive_card(deck, player_hand, player_total, player_ace_eleven_count)
+player.draw_card(deck)
+print(player.hand)
 print()
-print(f"//// {player_name}'s hand: {str(player_hand)}  ////")
+print(f"//// {player.name}'s hand: {player.hand}  ////")
 print ()
-deck, dealer_hand, dealer_total, dealer_ace_eleven_count = receive_card(deck, dealer_hand, dealer_total, dealer_ace_eleven_count)
+dealer.draw_card(deck)
 print()
-print(f"//// {dealer_name}'s hand: {str(dealer_hand)}  ////")
+print(f"//// {dealer.name}'s hand: {dealer.hand}  ////")
 print ()
 
 dialogue_next_line()
 
-deck, player_hand, player_total, player_ace_eleven_count = receive_card(deck, player_hand, player_total, player_ace_eleven_count)
+player.draw_card(deck)
 print()
-print(f"//// {player_name}'s hand: {str(player_hand)}  TOTAL: {str(player_total)}  ////")
+print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
 print ()
-deck, dealer_hand, dealer_total, dealer_ace_eleven_count = receive_card(deck, dealer_hand, dealer_total, dealer_ace_eleven_count)
+dealer.draw_card(deck)
 print()
-print(f"//// {dealer_name}'s hand: [{str(dealer_hand[0])}, (hidden card)]  ////")
+print(f"//// {dealer.name}'s hand: {dealer.hand.cards[0]}, [ *** ]  ////") # dealer's hidden card
 print ()
 
 # blackjack checks
-if player_total == 21:
-    if dealer_total == 21:
+if player.hand.calculate_total() == 21:
+    if dealer.hand.calculate_total() == 21:
         perform_endgame('none', 'blackjack')
-    perform_endgame(player_name, 'blackjack', dealer_name)
+    perform_endgame(player.name, 'blackjack', dealer.name)
 
 
 
@@ -162,13 +118,13 @@ while move != 's':
     move = input()
     print()
     if move == 'h':
-        deck, player_hand, player_total, player_ace_eleven_count = receive_card(deck, player_hand, player_total, player_ace_eleven_count)
+        player.draw_card(deck)
         print()
-        print(f"//// {player_name}'s hand: {str(player_hand)}  TOTAL: {str(player_total)}  ////")
+        print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
         print ()
         #check if player is bust
-        if player_total > 21:
-            perform_endgame(dealer_name, dealer_total, player_name, player_total)
+        if player.calculate_hand_total() > 21:
+            perform_endgame(dealer.name, dealer.calculate_hand_total(), player.name, player.calculate_hand_total())
 
 
 print('Player chose to stand')
@@ -182,30 +138,30 @@ print()
 print("Dealer's turn.... now to reveal their hidden card....")
 dialogue_next_line()
 print()
-print(f"//// {dealer_name}'s hand: {str(dealer_hand)}  TOTAL: {str(dealer_total)}  ////")
+print(f"//// {dealer.name}'s hand: {str(dealer.hand)}  TOTAL: {str(dealer.calculate_hand_total())}  ////")
 print ()
 dialogue_next_line()
 
 # blackjack check
-if dealer_total == 21:
-    perform_endgame(dealer_name, 'blackjack', player_name)
+if dealer.calculate_hand_total() == 21:
+    perform_endgame(dealer.name, 'blackjack', player.name)
 
 
 # dealer hits until points total at least 17
-if dealer_total >= 17:
+if dealer.calculate_hand_total() >= 17:
     print("Dealer must stand when they have at least 17 points.")
 else:
     print("Dealer must draw until they total at least 17 points.")
 dialogue_next_line()
 
-while dealer_total < 17:
-    deck, dealer_hand, dealer_total, dealer_ace_eleven_count = receive_card(deck, dealer_hand, dealer_total, dealer_ace_eleven_count)
+while dealer.calculate_hand_total() < 17:
+    dealer.draw_card(deck)
     print()
-    print(f"//// {dealer_name}'s hand: {str(dealer_hand)}  TOTAL: {str(dealer_total)}  ////")
+    print(f"//// {dealer.name}'s hand: {str(dealer.hand)}  TOTAL: {str(dealer.calculate_hand_total())}  ////")
     print ()
     # check if dealer is bust
-    if dealer_total > 21:
-        perform_endgame(player_name, player_total, dealer_name, dealer_total)
+    if dealer.calculate_hand_total() > 21:
+        perform_endgame(player.name, player.calculate_hand_total(), dealer.name, dealer.calculate_hand_total())
     dialogue_next_line()
 
 
@@ -215,12 +171,12 @@ while dealer_total < 17:
 # PHASE 4: reviewing hands and revealling the winner
 print("Time to review the hands")
 dialogue_next_line()
-if player_total == dealer_total:
-    perform_endgame('none', player_total)
-elif player_total > dealer_total:
-    perform_endgame(player_name, player_total, dealer_name, dealer_total) 
+if player.calculate_hand_total() == dealer.calculate_hand_total():
+    perform_endgame('none', player.calculate_hand_total())
+elif player.calculate_hand_total() > dealer.calculate_hand_total():
+    perform_endgame(player.name, player.calculate_hand_total(), dealer.name, dealer.calculate_hand_total()) 
 else:
-    perform_endgame(dealer_name, dealer_total, player_name, player_total)
+    perform_endgame(dealer.name, dealer.calculate_hand_total(), player.name, player.calculate_hand_total())
 
 
 

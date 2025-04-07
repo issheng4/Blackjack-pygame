@@ -30,15 +30,18 @@ class Card:
 class Deck:
     def __init__(self):
         self.cards = []
-        for i in VALUES:
-            for j in SUITS:
-                self.cards.append(Card(i, j))
+        for value in VALUES:
+            for suit in SUITS:
+                self.cards.append(Card(value, suit))
 
     def shuffle(self):
         random.shuffle(self.cards)
 
     def deal_card(self):
-        self.cards.pop()
+        return self.cards.pop()
+
+    def __repr__(self):
+        return str(self.cards)
 
 
 
@@ -59,12 +62,17 @@ class Hand:
                 ace_count += 1
 
         # adjusting total points for aces
-        for i in range(ace_count):
+        for ace in range(ace_count):
             if total_points > 21:
                 total_points -= 10
 
+        return total_points
+
     def __repr__(self):
-        return f"Hand({self.cards})"
+        return str(self.cards)
+    
+    def __str__(self):
+        return ' '.join(str(card) for card in self.cards)
 
 
 class Person:
@@ -80,6 +88,6 @@ class Person:
 
     def calculate_hand_total(self):
         return self.hand.calculate_total()
-
-    def __str__(self):
+    
+    def __repr__(self):
         return self.name
