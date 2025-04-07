@@ -46,8 +46,13 @@ def main():
     # blackjack checks
     if player.hand.calculate_total() == 21:
         print()
-        if dealer.hand.calculate_total() == 21:
-            perform_endgame('none', 'blackjack')
+        if dealer.hand.cards[0].value in ['J', 'Q', 'K', 'A']:
+            print("Wow, a blackjack! Let's reveal the dealer's hidden card and see if I have one too....")
+            dialogue_next_line()
+            print(f"//// {dealer.name}'s hand: {dealer.hand}  TOTAL: {dealer.calculate_hand_total()}  ////")
+            dialogue_next_line()
+            if dealer.hand.calculate_total() == 21:
+                perform_endgame('none', 'blackjack')
         perform_endgame(player.name, 'blackjack', dealer.name)
 
 
