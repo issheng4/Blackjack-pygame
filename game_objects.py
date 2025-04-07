@@ -4,6 +4,13 @@ VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 SUITS = ['spades', 'clubs', 'hearts', 'diamonds']
 
 class Card:
+    _SUIT_SYMBOLS = {
+        'spades': '♤',
+        'clubs': '♧',
+        'hearts': '♡',
+        'diamonds': '♢'
+    }
+    
     def __init__(self, value, suit):
         self.value = value
         self.suit = suit
@@ -23,7 +30,7 @@ class Card:
         return f"Card('{self.value}', '{self.suit}')"
 
     def __str__(self):
-        return f'[{self.value} | {self.suit}]'
+        return f'[ {self.value} {self._SUIT_SYMBOLS[self.suit]} ]'
     
 
 
