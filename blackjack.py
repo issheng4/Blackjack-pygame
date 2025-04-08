@@ -10,7 +10,9 @@ deck = Deck()
 
 def main():
 
+    # ---------------------------------------------------
     # PHASE 1: dealing
+    # ---------------------------------------------------
 
     print()
     print()
@@ -56,8 +58,9 @@ def main():
 
 
 
-
+    # ---------------------------------------------------
     # PHASE 2: player's turn
+    # ---------------------------------------------------
 
     # initialise player's choice of move
     move = 0
@@ -84,7 +87,10 @@ def main():
 
 
 
+
+    # ---------------------------------------------------
     # PHASE 3: dealer's turn
+    # ---------------------------------------------------
 
     # dealer reveals card
     print("Dealer's turn.... now to reveal their hidden card....")
@@ -117,10 +123,12 @@ def main():
         dialogue_next_line()
 
 
-
-
-
+    
+    # ---------------------------------------------------
     # PHASE 4: reviewing hands and revealling the winner
+    # ---------------------------------------------------
+
+
     print("Time to review the hands")
     dialogue_next_line()
     if player.calculate_hand_total() == dealer.calculate_hand_total():
