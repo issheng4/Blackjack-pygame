@@ -20,10 +20,8 @@ def main():
 
     # shuffle deck
     deck.shuffle()
-    print(deck)
 
     player.draw_card(deck)
-    print(player.hand)
     print()
     print(f"//// {player.name}'s hand: {player.hand}  ////")
     print ()
