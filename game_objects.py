@@ -19,10 +19,7 @@ class Card:
         if self.value in ['J', 'Q', 'K']:
             return 10
         elif self.value == 'A':
-            if total + 11 <= 21:
-                return 11
-            else:
-                return 1
+            return 11 # will be adjusted to 1 later if necessary
         else:
             return int(self.value)
         
@@ -69,9 +66,9 @@ class Hand:
                 ace_count += 1
 
         # adjusting total points for aces
-        for ace in range(ace_count):
-            if total_points > 21:
-                total_points -= 10
+        while total_points > 21 and ace_count:
+            total_points -= 10
+            ace_count -= 1
 
         return total_points
 
