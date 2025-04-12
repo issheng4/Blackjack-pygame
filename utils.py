@@ -1,3 +1,5 @@
+import sys
+
 def dialogue_next_line():
     '''player presses enter key to continue'''
     print()
@@ -5,31 +7,28 @@ def dialogue_next_line():
     print()
 
 
-def perform_endgame(winner, winner_points, loser=0, loser_points=0):
-    print()    
+def perform_endgame(winner, winner_points, loser=None, loser_points=None):
+    print() 
+
     if winner == 'none':
         print('*** GAME DRAW ***')
         print(f"both the player and dealer have {winner_points}!")
-        print()
-        print()
-        quit()
-    
-    print(f'*** {winner.upper()} WINS ***')
 
-    if winner_points == 'blackjack':
+    elif winner_points == 'blackjack':
+        print(f'*** {winner.upper()} WINS ***')
         print(f'{winner} got a blackjack!')
-        print()
-        print()
-        quit()
-    if loser_points > 21:
+
+    elif loser_points > 21:
+        print(f'*** {winner.upper()} WINS ***')
         print(f'{loser} went bust!')
-        print()
-        print()
-        quit()
-    print(f'{winner} has {winner_points} // {loser} has {loser_points}')
-    print()
-    print()
-    quit()
+
+    else:
+        print(f'*** {winner.upper()} WINS ***')
+        print(f'{winner} has {winner_points} // {loser} has {loser_points}')
+    
+    print('\n')
+    print('Lets go again!')
+    return
 
 
 
