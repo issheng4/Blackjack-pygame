@@ -37,7 +37,7 @@ class Deck:
         for value in VALUES:
             for suit in SUITS:
                 self.cards.append(Card(value, suit))
-
+                    
     def shuffle(self):
         random.shuffle(self.cards)
 
@@ -92,6 +92,9 @@ class Person:
 
     def calculate_hand_total(self):
         return self.hand.calculate_total()
+    
+    def reset_hand(self):
+        self.hand = Hand()
     
     def __repr__(self):
         return self.name

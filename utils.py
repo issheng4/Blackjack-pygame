@@ -1,5 +1,3 @@
-import sys
-
 def dialogue_next_line():
     '''player presses enter key to continue'''
     print()
@@ -26,8 +24,10 @@ def perform_endgame(winner, winner_points, loser=None, loser_points=None):
         print(f'*** {winner.upper()} WINS ***')
         print(f'{winner} has {winner_points} // {loser} has {loser_points}')
     
-    print('\n')
+    
+    print()
     print('Lets go again!')
+    dialogue_next_line()
     return
 
 

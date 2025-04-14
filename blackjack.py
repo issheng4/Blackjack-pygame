@@ -2,30 +2,27 @@ from game_objects import Card, Deck, Hand, Person
 from utils import dialogue_next_line, perform_endgame
 
 
-# initialise class variables
-player = Person('player', 'Playerrr')
-dealer = Person('dealer', 'Dealerrr')
-deck = Deck()
-
-
 def main():
-    while True:
-        play_game()
-
-
-def play_game():
-    # ---------------------------------------------------
-    # PHASE 1: dealing
-    # ---------------------------------------------------
-
-    print()
+    player = Person('player', 'Playerrr')
+    dealer = Person('dealer', 'Dealerrr')
+    
     print()
     print("Welcome to this game of blackjack! Let's deal....")
     dialogue_next_line()
+    
+    while True:
+        player.reset_hand()
+        dealer.reset_hand()
+        deck = Deck()
+        deck.shuffle()
+        
+        play_game(deck, player, dealer)
 
 
-    # shuffle deck
-    deck.shuffle()
+def play_game(deck, player, dealer):
+    # ---------------------------------------------------
+    # PHASE 1: dealing
+    # ---------------------------------------------------
 
     player.draw_card(deck)
     print()
@@ -57,7 +54,9 @@ def play_game():
             dialogue_next_line()
             if dealer.hand.calculate_total() == 21:
                 perform_endgame('none', 'blackjack')
+                return
         perform_endgame(player.name, 'blackjack', dealer.name)
+        return
 
 
 
@@ -84,6 +83,7 @@ def play_game():
             #check if player is bust
             if player.calculate_hand_total() > 21:
                 perform_endgame(dealer.name, dealer.calculate_hand_total(), player.name, player.calculate_hand_total())
+                return
 
 
     print('Player chose to stand')
@@ -107,6 +107,7 @@ def play_game():
     # blackjack check
     if dealer.calculate_hand_total() == 21:
         perform_endgame(dealer.name, 'blackjack', player.name)
+        return
 
 
     # dealer hits until points total at least 17
@@ -124,12 +125,13 @@ def play_game():
         # check if dealer is bust
         if dealer.calculate_hand_total() > 21:
             perform_endgame(player.name, player.calculate_hand_total(), dealer.name, dealer.calculate_hand_total())
+            return
         dialogue_next_line()
 
 
     
     # ---------------------------------------------------
-    # PHASE 4: reviewing hands and revealling the winner
+    # PHASE 4: reviewing hands and revealing the winner
     # ---------------------------------------------------
 
 
@@ -137,10 +139,13 @@ def play_game():
     dialogue_next_line()
     if player.calculate_hand_total() == dealer.calculate_hand_total():
         perform_endgame('none', player.calculate_hand_total())
+        return
     elif player.calculate_hand_total() > dealer.calculate_hand_total():
         perform_endgame(player.name, player.calculate_hand_total(), dealer.name, dealer.calculate_hand_total()) 
+        return
     else:
         perform_endgame(dealer.name, dealer.calculate_hand_total(), player.name, player.calculate_hand_total())
+        return
 
 
 if __name__ == '__main__':
