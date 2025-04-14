@@ -7,16 +7,22 @@ def main():
     dealer = Person('dealer', 'Dealerrr')
     
     print()
-    print("Welcome to this game of blackjack! Let's deal....")
+    print("Welcome to this game of blackjack! Let's deal.......")
     dialogue_next_line()
     
     while True:
+        
         player.reset_hand()
         dealer.reset_hand()
         deck = Deck()
         deck.shuffle()
         
-        play_game(deck, player, dealer)
+        winner = play_game(deck, player, dealer)
+
+        winner.games_won += 1
+        print(f'=====  GAME SCORE [ {player.name}: {player.games_won} | {dealer.name}: {dealer.games_won} ]  =====')
+        dialogue_next_line()
+
 
 
 def play_game(deck, player, dealer):
@@ -54,9 +60,9 @@ def play_game(deck, player, dealer):
             dialogue_next_line()
             if dealer.hand.calculate_total() == 21:
                 perform_endgame('none', 'blackjack')
-                return
+                return None
         perform_endgame(player.name, 'blackjack', dealer.name)
-        return
+        return player
 
 
 
@@ -83,7 +89,7 @@ def play_game(deck, player, dealer):
             #check if player is bust
             if player.calculate_hand_total() > 21:
                 perform_endgame(dealer.name, dealer.calculate_hand_total(), player.name, player.calculate_hand_total())
-                return
+                return dealer
 
 
     print('Player chose to stand')
@@ -107,7 +113,7 @@ def play_game(deck, player, dealer):
     # blackjack check
     if dealer.calculate_hand_total() == 21:
         perform_endgame(dealer.name, 'blackjack', player.name)
-        return
+        return dealer
 
 
     # dealer hits until points total at least 17
@@ -125,7 +131,7 @@ def play_game(deck, player, dealer):
         # check if dealer is bust
         if dealer.calculate_hand_total() > 21:
             perform_endgame(player.name, player.calculate_hand_total(), dealer.name, dealer.calculate_hand_total())
-            return
+            return player
         dialogue_next_line()
 
 
@@ -139,13 +145,13 @@ def play_game(deck, player, dealer):
     dialogue_next_line()
     if player.calculate_hand_total() == dealer.calculate_hand_total():
         perform_endgame('none', player.calculate_hand_total())
-        return
+        return None
     elif player.calculate_hand_total() > dealer.calculate_hand_total():
         perform_endgame(player.name, player.calculate_hand_total(), dealer.name, dealer.calculate_hand_total()) 
-        return
+        return player
     else:
         perform_endgame(dealer.name, dealer.calculate_hand_total(), player.name, player.calculate_hand_total())
-        return
+        return dealer
 
 
 if __name__ == '__main__':
