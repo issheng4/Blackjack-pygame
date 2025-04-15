@@ -1,13 +1,25 @@
 from game_objects import Card, Deck, Hand, Person
-from utils import dialogue_next_line, perform_endgame
+from utils import dialogue_next_line, ask_for_name, perform_endgame
 
 
 def main():
-    player = Person('player', 'Playerrr')
-    dealer = Person('dealer', 'Dealerrr')
+    player = Person('player', '')
+    dealer = Person('dealer', 'The Dealer')
     
     print()
-    print("Welcome to this game of blackjack! Let's deal.......")
+    print("Welcome to this game of blackjack!")
+    dialogue_next_line()
+    print("My name is The Dealer. What's yours?")
+    print()
+
+    player.name = ask_for_name()
+    print()
+    print(f"Oh, {player.name}? Lovely name.")
+   
+    dialogue_next_line()
+    print('Now......')
+    dialogue_next_line()
+    print("Let's deal!")
     dialogue_next_line()
     
     while True:

@@ -4,6 +4,13 @@ def dialogue_next_line():
     input('(press enter to continue.....)')
     print()
 
+def ask_for_name():
+    name = ''
+    while name in ['', 'The Dealer']:
+        name = input("(Type your name here and hit enter)  ").strip()
+        print()
+    return name
+
 
 def perform_endgame(winner, winner_points, loser=None, loser_points=None):
     print() 
