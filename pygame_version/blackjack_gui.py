@@ -22,8 +22,13 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 font = pygame.font.Font(None, 50)
 clock = pygame.time.Clock()
 running = True
-line_fully_displayed = False
 dt = 0
+
+line_fully_displayed = False
+arrow_blink_speed_ms = 500
+arrow_last_blink = 0
+arrow_visible = True
+
 
 # Dialogue content
 dialogue_lines = [
@@ -50,6 +55,7 @@ last_update = pygame.time.get_ticks()
 
 while running:
     dt = clock.tick(60)
+    now = pygame.time.get_ticks()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -71,7 +77,6 @@ while running:
                 line_fully_displayed = True
 
     # Typewriter logic
-    now = pygame.time.get_ticks()
     current_full_text = dialogue_lines[current_line_index]
     current_full_text_word_count = len(current_full_text)
     if not line_fully_displayed and text_index < current_full_text_word_count:
@@ -106,6 +111,20 @@ while running:
         text_surface = font.render(line, True, (255, 255, 255))
         screen.blit(text_surface, (text_box_x + padding, text_box_y + padding + i * line_height))
 
+    # Draw arrow in text box
+    if now - arrow_last_blink > arrow_blink_speed_ms:
+        arrow_visible = not arrow_visible  # flip visibility
+        arrow_last_blink = now
+    if line_fully_displayed and current_line_index < len(dialogue_lines) - 1 and arrow_visible:
+        arrow_colour = (255, 255, 255)
+        arrow_size = 10
+        arrow_x = text_box_x + text_box_width - 30
+        arrow_y = text_box_y + text_box_height - 25
+        pygame.draw.polygon(screen, arrow_colour, [
+            (arrow_x, arrow_y),
+            (arrow_x + arrow_size, arrow_y),
+            (arrow_x + arrow_size // 2, arrow_y + arrow_size)
+        ])
 
 
     pygame.display.flip()
