@@ -38,13 +38,13 @@ intro_dialogue_lines = [
     "Are you familiar with the rules?",
     "...",
     "Well... let me give you a rundown on them anyway.",
-    "So, the aim of the game for you is to beat me, The Dealer."
-]
-pregame_dialogue_lines = [
+    "Let's bring the table in.",
+    "...", # table appears on screen
+    "There we go.",
     "The rules are simple.",
     "The aim of the game is to beat me, The Dealer.",
     "Your goal is to get as close to 21 as possible, by totalling the value of the cards in your hand.",
-    "Face cards are worth 10, and aces are worth either 1 or 11".,
+    "Face cards are worth 10, and aces are worth either 1 or 11.",
     "You'll start with two cards.",
     "You can hit to take another card, or stand to keep what you've got.",
     "But no going over 21, otherwise you go bust and lose.",
@@ -56,8 +56,6 @@ pregame_dialogue_lines = [
     "...",
     "Anywhom...",
     "Let's play!"
-
-
 ]   
 
 # Dialogue state variables
@@ -67,7 +65,7 @@ text_index = 0
 
 
 # Letter timing setup
-letter_delay = 20
+letter_delay = 18
 last_update = pygame.time.get_ticks()
 
 
@@ -135,7 +133,11 @@ def draw_screen():
     global arrow_last_blink, arrow_visible
 
     # Fill background
-    screen.fill((30, 30, 30))
+    if current_line_index < 11:
+        screen.fill((30, 30, 30))
+    # Change screen to table view once dealer says the line "Let's bring the table in"
+    else:
+        screen.fill((22, 79, 40))
 
     if game_state == INTRO:
         draw_intro()
@@ -180,10 +182,10 @@ def draw_intro():
             (arrow_x + arrow_size // 2, arrow_y + arrow_size)
         ])
 
+
+
 def draw_playing():
     now = pygame.time.get_ticks()
-
-    screen.fill((22, 79, 40))
 
     # Text box location
     text_box_width = screen_width * 0.9
