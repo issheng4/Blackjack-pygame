@@ -1,6 +1,6 @@
 import random
 import pygame
-from constants import CARD_WIDTH, CARD_HEIGHT
+from constants import CARD_WIDTH, CARD_HEIGHT, SHADOW
 
 VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 SUITS = ['spades', 'clubs', 'hearts', 'diamonds']
@@ -23,7 +23,7 @@ class Card:
         filename = f'assets/cards/{self.value}{self.suit[0].upper()}.png'
         try:
             raw_image = pygame.image.load(filename)
-            resized_image = pygame.transform.scale(raw_image, (CARD_WIDTH, CARD_HEIGHT))
+            resized_image = pygame.transform.smoothscale(raw_image, (CARD_WIDTH, CARD_HEIGHT))
             return resized_image
         except pygame.error as e:
             print(f'Error loading card image {filename}: {e}')
@@ -31,6 +31,12 @@ class Card:
         
     def draw(self, surface, x, y):
         if self.image:
+            # Render card shadow
+            shadow = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
+            shadow.fill(SHADOW)
+            surface.blit(shadow, (x - 2, y + 2))  # offset slightly
+
+            # Render card on top
             surface.blit(self.image, (x, y))
         
     def __repr__(self):

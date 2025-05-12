@@ -13,13 +13,14 @@ RESOLUTION = 'resolution'
 FONT_NAME = 'lucidaconsole'
 FONT_SIZE = 30
 
-# Colours (R, G, B)
+# Colours (R, G, B) or (R, G, B, A) format
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 TABLE_GREEN = (22, 79, 40)
 BG_DARK_GREY = (30, 30, 30)
 TEXTBOX_DARK_GREY = (10, 10, 10)
 TEXTBOX_LIGHT_GREY = (235, 235, 235)
+SHADOW = (0, 0, 0, 15)
 
 # Text box settings
 TEXTBOX_WIDTH = 1152 # SCREEN_WIDTH * 0.9
@@ -42,4 +43,10 @@ ARROW_Y = 675 # TEXTBOX_Y + TEXTBOX_HEIGHT - 25
 # Card dimensions
 CARD_WIDTH = 500/4
 CARD_HEIGHT = 726/4
+
+# Card positioning
+FIRST_PLAYER_CARD_X = 400
+FIRST_PLAYER_CARD_Y = 340
+PLAYER_CARD_DISPLACEMENT_X = 27
+PLAYER_CARD_DISPLACEMENT_Y = 31
 

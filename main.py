@@ -7,6 +7,7 @@ from constants import (
     TEXTBOX_WIDTH, TEXTBOX_HEIGHT, TEXTBOX_X, TEXTBOX_Y, TEXTBOX_BORDER_RADIUS,
     LINE_HEIGHT, PADDING, LETTER_DELAY,
     ARROW_BLINK_SPEED_MS, ARROW_SIZE, ARROW_X, ARROW_Y,
+    FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y, PLAYER_CARD_DISPLACEMENT_X, PLAYER_CARD_DISPLACEMENT_Y
 )
 from dialogue import INTRO_DIALOGUE_LINES
 from game_objects import Card
@@ -178,11 +179,12 @@ def draw_playing():
         ])
 
     # TEST: Draw 7 of clubs on screen
-    test_card = Card('7', 'diamonds')
-    test_card.draw(screen, 500, 300)
-    test_card_2 = Card('10', 'spades')
-    test_card_2.draw(screen, 535, 265)
-
+    test_cards = [Card('7', 'diamonds'), Card('10', 'spades'), Card('J', 'clubs'), Card('A', 'hearts'), Card('4', 'hearts')]
+    x, y = FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y
+    for card in test_cards:
+        card.draw(screen, x, y)
+        x += PLAYER_CARD_DISPLACEMENT_X
+        y -= PLAYER_CARD_DISPLACEMENT_Y
 
 
 
