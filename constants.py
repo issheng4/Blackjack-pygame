@@ -1,0 +1,45 @@
+# Screen dimensions
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+
+# Game states
+INTRO = 'intro'
+DEALING = 'dealing'
+PLAYER_TURN = 'player_turn'
+DEALER_TURN = 'dealer_turn'
+RESOLUTION = 'resolution'
+
+# Font settings
+FONT_NAME = 'lucidaconsole'
+FONT_SIZE = 30
+
+# Colours (R, G, B)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+TABLE_GREEN = (22, 79, 40)
+BG_DARK_GREY = (30, 30, 30)
+TEXTBOX_DARK_GREY = (10, 10, 10)
+TEXTBOX_LIGHT_GREY = (235, 235, 235)
+
+# Text box settings
+TEXTBOX_WIDTH = 1152 # SCREEN_WIDTH * 0.9
+TEXTBOX_HEIGHT = 144 # SCREEN_HEIGHT * 0.2
+TEXTBOX_X = 64 # (SCREEN_WIDTH - TEXT_BOX_WIDTH) // 2
+TEXTBOX_Y = 556 # SCREEN_HEIGHT - TEXT_BOX_HEIGHT - (SCREEN_HEIGHT // 36)
+TEXTBOX_BORDER_RADIUS = 10
+
+# Text settings
+LINE_HEIGHT = 35
+PADDING = 18
+LETTER_DELAY = 18
+
+# Text box arrow settings
+ARROW_BLINK_SPEED_MS = 500
+ARROW_SIZE = 10
+ARROW_X = 1186 # TEXTBOX_X + TEXTBOX_WIDTH - 30
+ARROW_Y = 675 # TEXTBOX_Y + TEXTBOX_HEIGHT - 25
+
+# Card dimensions
+CARD_WIDTH = 500/4
+CARD_HEIGHT = 726/4
+

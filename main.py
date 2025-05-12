@@ -1,24 +1,29 @@
 import pygame
+from constants import (
+    SCREEN_WIDTH, SCREEN_HEIGHT,
+    INTRO, DEALING, PLAYER_TURN, DEALER_TURN, RESOLUTION,
+    FONT_NAME, FONT_SIZE,
+    WHITE, BLACK, TABLE_GREEN, BG_DARK_GREY, TEXTBOX_DARK_GREY, TEXTBOX_LIGHT_GREY,
+    TEXTBOX_WIDTH, TEXTBOX_HEIGHT, TEXTBOX_X, TEXTBOX_Y, TEXTBOX_BORDER_RADIUS,
+    LINE_HEIGHT, PADDING, LETTER_DELAY,
+    ARROW_BLINK_SPEED_MS, ARROW_SIZE, ARROW_X, ARROW_Y,
+)
+from dialogue import INTRO_DIALOGUE_LINES
+from game_objects import Card
 
 # Initialise pygame
 pygame.init()
 
 # Screen settings
-screen_width, screen_height = 1280, 720
-screen = pygame.display.set_mode((screen_width, screen_height))
-font = pygame.font.SysFont('lucidaconsole', 30)
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+font = pygame.font.SysFont(FONT_NAME, FONT_SIZE)
 
 # Clock setup
 clock = pygame.time.Clock()
 dt = 0
 
-# Game constants
-INTRO = 'intro'
-PLAYING = 'playing'
-
 # Game state variables
 line_fully_displayed = False
-arrow_blink_speed_ms = 500
 arrow_last_blink = 0
 arrow_visible = True
 
@@ -26,37 +31,6 @@ arrow_visible = True
 running = True
 game_state = INTRO
 
-# Dialogue content
-intro_dialogue_lines = [
-    "Welcome to the blackjack table!",
-    "My name is The Dealer.",
-    "Today, we'll be playing some rounds of blackjack.",
-    "No gambling though. I'm here to showcase the beauty, the artistry of this fine card game.",
-    "Not here to partake in the devious act of gambling.",
-    "Instead...",
-    "Let's play the first to win 15 games.",
-    "Are you familiar with the rules?",
-    "...",
-    "Well... let me give you a rundown on them anyway.",
-    "Let's bring the table in.",
-    "...", # table appears on screen
-    "There we go.",
-    "The rules are simple.",
-    "The aim of the game is to beat me, The Dealer.",
-    "Your goal is to get as close to 21 as possible, by totalling the value of the cards in your hand.",
-    "Face cards are worth 10, and aces are worth either 1 or 11.",
-    "You'll start with two cards.",
-    "You can hit to take another card, or stand to keep what you've got.",
-    "But no going over 21, otherwise you go bust and lose.",
-    "Now for me, The Dealer.",
-    "I also get 2 cards at the start, and I need to hit until I reach at least 17.",
-    "Oh, one last thing.",
-    "If you get an ace and a ten-value card straight away, that's a Blackjack, and you win!",
-    "Well.. Unless I also get a blackjack... then it's a draw.",
-    "...",
-    "Anywhom...",
-    "Let's play!"
-]   
 
 # Dialogue state variables
 current_line_index = 0
@@ -65,7 +39,6 @@ text_index = 0
 
 
 # Letter timing setup
-letter_delay = 18
 last_update = pygame.time.get_ticks()
 
 
@@ -92,8 +65,8 @@ def handle_intro_input(event):
         # If full line is displayed, go to next one when key is pressed
         if line_fully_displayed:
             current_line_index += 1
-            if current_line_index >= len(intro_dialogue_lines):
-                game_state = PLAYING
+            if current_line_index >= len(INTRO_DIALOGUE_LINES):
+                game_state = DEALING
             else:
                 typed_text = ""
                 text_index = 0
@@ -101,7 +74,7 @@ def handle_intro_input(event):
                 line_fully_displayed = False
         else:
             # Skip animation and show full line
-            typed_text = intro_dialogue_lines[current_line_index]
+            typed_text = INTRO_DIALOGUE_LINES[current_line_index]
             line_fully_displayed = True
 
 def handle_playing_input(event):
@@ -111,10 +84,10 @@ def update_intro(now):
     global typed_text, text_index, last_update, line_fully_displayed, arrow_visible, arrow_last_blink
 
     # Typewriter logic
-    current_full_text = intro_dialogue_lines[current_line_index]
+    current_full_text = INTRO_DIALOGUE_LINES[current_line_index]
     current_full_text_word_count = len(current_full_text)
     if not line_fully_displayed and text_index < current_full_text_word_count:
-        if now - last_update > letter_delay:
+        if now - last_update > LETTER_DELAY:
             typed_text += current_full_text[text_index]
             text_index += 1
             last_update = now
@@ -122,7 +95,7 @@ def update_intro(now):
             line_fully_displayed = True
 
     # Arrow blink state update
-    if now - arrow_last_blink > arrow_blink_speed_ms:
+    if now - arrow_last_blink > ARROW_BLINK_SPEED_MS:
         arrow_visible = not arrow_visible  # flip visibility
         arrow_last_blink = now
 
@@ -134,14 +107,14 @@ def draw_screen():
 
     # Fill background
     if current_line_index < 11:
-        screen.fill((30, 30, 30))
+        screen.fill(BG_DARK_GREY)
     # Change screen to table view once dealer says the line "Let's bring the table in"
     else:
-        screen.fill((22, 79, 40))
+        screen.fill(TABLE_GREEN)
 
     if game_state == INTRO:
         draw_intro()
-    elif game_state == PLAYING:
+    elif game_state == DEALING:
         draw_playing()
 
     pygame.display.flip()
@@ -150,36 +123,28 @@ def draw_intro():
     now = pygame.time.get_ticks()
 
     # Text box location
-    text_box_width = screen_width * 0.9
-    text_box_height = screen_height * 0.2
-    text_box_x = (screen_width - text_box_width) // 2
-    text_box_y = screen_height - text_box_height - (screen_height // 36)
-    text_box_rect = pygame.Rect(text_box_x, text_box_y, text_box_width, text_box_height)
+    text_box_rect = pygame.Rect(TEXTBOX_X, TEXTBOX_Y, TEXTBOX_WIDTH, TEXTBOX_HEIGHT)
 
     # Wrap text
-    line_height = 35
-    padding = 18
-    wrapped_lines = wrap_text(typed_text, font, text_box_width - line_height)
+    wrapped_lines = wrap_text(typed_text, font, TEXTBOX_WIDTH - LINE_HEIGHT)
 
     # Draw text box
-    pygame.draw.rect(screen, (10, 10, 10), text_box_rect, border_radius=10)
-    pygame.draw.rect(screen, (235, 235, 235), text_box_rect, 3, border_radius=10)
+    pygame.draw.rect(screen, TEXTBOX_DARK_GREY, text_box_rect, border_radius=TEXTBOX_BORDER_RADIUS)
+    pygame.draw.rect(screen, TEXTBOX_LIGHT_GREY, text_box_rect, 3, border_radius=TEXTBOX_BORDER_RADIUS)
 
     # Display dialogue
+    x_offset = TEXTBOX_X + PADDING
+    y_offset = TEXTBOX_Y + PADDING
     for i, line in enumerate(wrapped_lines):
-        text_surface = font.render(line, True, (255, 255, 255))
-        screen.blit(text_surface, (text_box_x + padding, text_box_y + padding + i * line_height))
+        text_surface = font.render(line, True, WHITE)
+        screen.blit(text_surface, (x_offset, y_offset + i * LINE_HEIGHT))
 
     # Draw arrow in text box
-    if line_fully_displayed and current_line_index < len(intro_dialogue_lines) - 1 and arrow_visible:
-        arrow_colour = (255, 255, 255)
-        arrow_size = 10
-        arrow_x = text_box_x + text_box_width - 30
-        arrow_y = text_box_y + text_box_height - 25
-        pygame.draw.polygon(screen, arrow_colour, [
-            (arrow_x, arrow_y),
-            (arrow_x + arrow_size, arrow_y),
-            (arrow_x + arrow_size // 2, arrow_y + arrow_size)
+    if line_fully_displayed and arrow_visible: # and maybe tbd current_line_index < len(INTRO_DIALOGUE_LINES) - 1
+        pygame.draw.polygon(screen, WHITE, [
+            (ARROW_X, ARROW_Y),
+            (ARROW_X + ARROW_SIZE, ARROW_Y),
+            (ARROW_X + ARROW_SIZE // 2, ARROW_Y + ARROW_SIZE)
         ])
 
 
@@ -188,37 +153,36 @@ def draw_playing():
     now = pygame.time.get_ticks()
 
     # Text box location
-    text_box_width = screen_width * 0.9
-    text_box_height = screen_height * 0.2
-    text_box_x = (screen_width - text_box_width) // 2
-    text_box_y = screen_height - text_box_height - (screen_height // 36)
-    text_box_rect = pygame.Rect(text_box_x, text_box_y, text_box_width, text_box_height)
+    text_box_rect = pygame.Rect(TEXTBOX_X, TEXTBOX_Y, TEXTBOX_WIDTH, TEXTBOX_HEIGHT)
 
     # Wrap text
-    line_height = 35
-    padding = 18
-    wrapped_lines = wrap_text(typed_text, font, text_box_width - line_height)
+    wrapped_lines = wrap_text(typed_text, font, TEXTBOX_WIDTH - LINE_HEIGHT)
 
     # Draw text box
-    pygame.draw.rect(screen, (10, 10, 10), text_box_rect, border_radius=10)
-    pygame.draw.rect(screen, (235, 235, 235), text_box_rect, 3, border_radius=10)
+    pygame.draw.rect(screen, TEXTBOX_DARK_GREY, text_box_rect, border_radius=TEXTBOX_BORDER_RADIUS)
+    pygame.draw.rect(screen, TEXTBOX_LIGHT_GREY, text_box_rect, 3, border_radius=TEXTBOX_BORDER_RADIUS)
 
     # Display dialogue
+    x_offset = TEXTBOX_X + PADDING
+    y_offset = TEXTBOX_Y + PADDING
     for i, line in enumerate(wrapped_lines):
-        text_surface = font.render(line, True, (255, 255, 255))
-        screen.blit(text_surface, (text_box_x + padding, text_box_y + padding + i * line_height))
+        text_surface = font.render(line, True, WHITE)
+        screen.blit(text_surface, (x_offset, y_offset + i * LINE_HEIGHT))
 
     # Draw arrow in text box
-    if line_fully_displayed and current_line_index < len(intro_dialogue_lines) - 1 and arrow_visible:
-        arrow_colour = (255, 255, 255)
-        arrow_size = 10
-        arrow_x = text_box_x + text_box_width - 30
-        arrow_y = text_box_y + text_box_height - 25
-        pygame.draw.polygon(screen, arrow_colour, [
-            (arrow_x, arrow_y),
-            (arrow_x + arrow_size, arrow_y),
-            (arrow_x + arrow_size // 2, arrow_y + arrow_size)
+    if line_fully_displayed and arrow_visible: # and maybe tbd current_line_index < len(INTRO_DIALOGUE_LINES) - 1
+        pygame.draw.polygon(screen, WHITE, [
+            (ARROW_X, ARROW_Y),
+            (ARROW_X + ARROW_SIZE, ARROW_Y),
+            (ARROW_X + ARROW_SIZE // 2, ARROW_Y + ARROW_SIZE)
         ])
+
+    # TEST: Draw 7 of clubs on screen
+    test_card = Card('7', 'diamonds')
+    test_card.draw(screen, 500, 300)
+    test_card_2 = Card('10', 'spades')
+    test_card_2.draw(screen, 535, 265)
+
 
 
 
@@ -234,12 +198,12 @@ while running:
 
         if game_state == INTRO:
             handle_intro_input(event)
-        elif game_state == PLAYING:
+        elif game_state == DEALING:
             handle_playing_input(event)
 
     if game_state == INTRO:
         update_intro(now)
-    elif game_state == PLAYING:
+    elif game_state == DEALING:
         update_playing(now)
 
     draw_screen()
