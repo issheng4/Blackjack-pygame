@@ -27,4 +27,4 @@ INTRO_DIALOGUE_LINES = [
     "...",
     "Anywhom...",
     "Let's play!"
-]   
+]
