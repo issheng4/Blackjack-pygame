@@ -175,7 +175,7 @@ class TextBoxController:
             self.arrow_visible = not self.arrow_visible
             self.arrow_last_blink = now
 
-    def handle_input(self, event):
+    def handle_dialogue_input(self, event):
         if event.type == pygame.KEYDOWN:
             # Handle ESC key to skip dialogue
             if event.key == pygame.K_ESCAPE:
@@ -195,6 +195,13 @@ class TextBoxController:
                 self.char_index = len(self.typed_text)
                 self.line_fully_displayed = True
         return 'continue'
+    
+    def handle_hit_or_stand_input(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_h:
+                Person().receive_card()
+            elif event.key == pygame.K_s:
+                pass
 
     def draw(self, surface):
         pygame.draw.rect(surface, TEXTBOX_DARK_GREY, self.rect, border_radius=self.border_radius)

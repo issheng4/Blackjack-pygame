@@ -43,6 +43,7 @@ DEAL_PLAYER_1 = pygame.USEREVENT + 1
 DEAL_DEALER_1 = pygame.USEREVENT + 2
 DEAL_PLAYER_2 = pygame.USEREVENT + 3
 DEAL_DEALER_2 = pygame.USEREVENT + 4
+DEAL_DONE = pygame.USEREVENT + 5
 has_started_dealing = False
 
 
@@ -53,20 +54,43 @@ has_started_dealing = False
 
 def handle_intro_input(event):
     global game_state
-    result = textbox.handle_input(event)
+    result = textbox.handle_dialogue_input(event)
     if result == 'done' or result == 'skip':
         game_state = GameState.DEALING
 
 
 
 def handle_dealing_input(event):
-    global has_started_dealing
+    global has_started_dealing, game_state
     if game_state == GameState.DEALING and has_started_dealing == False:
         pygame.time.set_timer(DEAL_PLAYER_1, 10, loops=1)
-        pygame.time.set_timer(DEAL_DEALER_1, 410, loops=1)
-        pygame.time.set_timer(DEAL_PLAYER_2, 810, loops=1)
-        pygame.time.set_timer(DEAL_DEALER_2, 1210, loops=1)
+        pygame.time.set_timer(DEAL_DEALER_1, 310, loops=1)
+        pygame.time.set_timer(DEAL_PLAYER_2, 610, loops=1)
+        pygame.time.set_timer(DEAL_DEALER_2, 910, loops=1)
         has_started_dealing = True
+
+    if event.type == DEAL_PLAYER_1:
+        player.receive_card(deck)
+
+    elif event.type == DEAL_DEALER_1:
+        dealer.receive_card(deck)
+
+    elif event.type == DEAL_PLAYER_2:
+        player.receive_card(deck)
+
+    elif event.type == DEAL_DEALER_2:
+        dealer.receive_card(deck)
+        pygame.time.set_timer(DEAL_DONE, 20, loops=1)
+
+    elif event.type == DEAL_DONE:
+        print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
+        game_state = GameState.PLAYER_TURN
+
+
+
+def handle_player_turn_input(event):
+    pass
+
 
 
 
@@ -80,7 +104,6 @@ def update_intro(now):
 
 def update_dealing(now):
     pass
-
 
 
 
@@ -114,13 +137,17 @@ def draw_screen():
 
     textbox.draw(screen)
 
-    if game_state == GameState.DEALING:
+    if game_state in [GameState.DEALING, GameState.PLAYER_TURN]:
         draw_playing()
 
     pygame.display.flip()
 
 
 
+
+# -------------------------------------
+# MAIN LOOP
+# ---------------------------------------
 
 while running:
     dt = clock.tick(60)
@@ -136,20 +163,16 @@ while running:
         elif game_state == GameState.DEALING:
             handle_dealing_input(event)
 
-            if event.type == DEAL_PLAYER_1:
-                player.receive_card(deck)
-            elif event.type == DEAL_DEALER_1:
-                dealer.receive_card(deck)
-            elif event.type == DEAL_PLAYER_2:
-                player.receive_card(deck)
-            elif event.type == DEAL_DEALER_2:
-                dealer.receive_card(deck)
+        elif game_state == GameState.PLAYER_TURN:
+            pass
 
     # Update state
     if game_state == GameState.INTRO:
         update_intro(now)
     elif game_state == GameState.DEALING:
         update_dealing(now)
+    elif game_state == GameState.PLAYER_TURN:
+        pass
 
     # Render frame
     draw_screen()
