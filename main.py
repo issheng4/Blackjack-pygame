@@ -11,7 +11,7 @@ from constants import (
     FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y, PLAYER_CARD_DISPLACEMENT_X, PLAYER_CARD_DISPLACEMENT_Y, FIRST_DEALER_CARD_X, FIRST_DEALER_CARD_Y, DEALER_CARD_DISPLACEMENT_X,
     CARD_BACK,
 )
-from dialogue import INTRO_DIALOGUE_LINES
+from dialogue import INTRO_DIALOGUE_LINES, player_turn_lines, HIT_OR_STAND_INPUT
 from game_objects import Card, Deck, Hand, Person, TextBoxController, GameState
 
 
@@ -36,7 +36,12 @@ now = 0
 
 # Text box
 text_rect = pygame.Rect(TEXTBOX_X, TEXTBOX_Y, TEXTBOX_WIDTH, TEXTBOX_HEIGHT)
-textbox = TextBoxController(font, text_rect, INTRO_DIALOGUE_LINES)
+textbox = TextBoxController(font, text_rect)
+
+# Dialogue flags
+intro_lines_set = False
+dealing_lines_set = False
+player_turn_lines_set = False
 
 # Deal timing events
 DEAL_PLAYER_1 = pygame.USEREVENT + 1
@@ -53,7 +58,7 @@ has_started_dealing = False
 # ---------------------------------------
 
 def handle_intro_input(event):
-    global game_state
+    global game_state    
     result = textbox.handle_dialogue_input(event)
     if result == 'done' or result == 'skip':
         game_state = GameState.DEALING
@@ -88,8 +93,9 @@ def handle_dealing_input(event):
 
 
 
-def handle_player_turn_input(event):
-    pass
+def handle_player_turn_input(event):    
+    textbox.handle_dialogue_input(event)
+
 
 
 
@@ -99,11 +105,26 @@ def handle_player_turn_input(event):
 # ---------------------------------------
 
 def update_intro(now):
+    global intro_lines_set
+    if not intro_lines_set:
+        textbox.set_lines(INTRO_DIALOGUE_LINES)
+        intro_lines_set = True
     textbox.update(now)
 
 
 def update_dealing(now):
-    pass
+    global dealing_lines_set
+    if not dealing_lines_set:
+        textbox.set_lines(["..."],show_arrow=False)
+        dealing_lines_set = True
+    textbox.update(now)
+
+def update_player_turn(now):
+    global player_turn_lines_set
+    if not player_turn_lines_set:
+        textbox.set_lines(HIT_OR_STAND_INPUT, show_arrow=False)
+        player_turn_lines_set = True
+    textbox.update(now)
 
 
 
@@ -164,7 +185,7 @@ while running:
             handle_dealing_input(event)
 
         elif game_state == GameState.PLAYER_TURN:
-            pass
+            handle_player_turn_input(event)
 
     # Update state
     if game_state == GameState.INTRO:
@@ -172,7 +193,7 @@ while running:
     elif game_state == GameState.DEALING:
         update_dealing(now)
     elif game_state == GameState.PLAYER_TURN:
-        pass
+        update_player_turn(now)
 
     # Render frame
     draw_screen()

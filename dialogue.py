@@ -1,3 +1,5 @@
+from game_objects import Person
+
 INTRO_DIALOGUE_LINES = [
     "Welcome to the blackjack table!",
     "My name is The Dealer.",
@@ -31,7 +33,8 @@ INTRO_DIALOGUE_LINES = [
 
 
 player_turn_lines = [
-    "You have a hand of {score}.",
-    "Would you like to hit [H] or stand [S]?"
+    "You have a hand of {score}. Would you like to hit [H] or stand [S]?",
     "Alright, then. My turn."
 ]
+
+HIT_OR_STAND_INPUT = ["[H] Hit     [S] Stand"]

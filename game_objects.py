@@ -124,53 +124,66 @@ class Person:
     
 
 class TextBoxController:
-    def __init__(self, font, rect, lines, letter_delay=LETTER_DELAY, blink_speed=ARROW_BLINK_SPEED_MS, padding=PADDING, line_height=LINE_HEIGHT, border_radius=TEXTBOX_BORDER_RADIUS):
+    def __init__(self, font, rect, letter_delay=LETTER_DELAY, blink_speed=ARROW_BLINK_SPEED_MS, padding=PADDING, line_height=LINE_HEIGHT, border_radius=TEXTBOX_BORDER_RADIUS):
         self.font = font
         self.rect = rect
-        self.lines = lines
 
         self.letter_delay = letter_delay
         self.blink_speed = blink_speed
         self.padding = padding
         self.line_height = line_height
         self.border_radius = border_radius
+    
 
-        # Animation state
+        # Display state
+        self.lines = []
         self.current_line_index = 0
         self.typed_text = ""
         self.char_index = 0
         self.last_update = 0
-        
+        self.line_fully_displayed = False
+    
         # Arrow state
         self.arrow_visible = True
         self.arrow_last_blink = 0
 
+    def set_lines(self, lines, show_arrow=True):
+        self.lines = lines
+        self.current_line_index = 0
+        self.typed_text = ""
+        self.char_index = 0
         self.line_fully_displayed = False
+        self.last_update = pygame.time.get_ticks()
+        self.show_arrow = show_arrow
+        
 
-    def wrap_text(self, text, max_width):
+    def wrap_text(self, text):
+        max_width = self.rect.width - 2 * self.padding
         words = text.split(" ")
-        lines = []
+        wrapped_lines = []
         current_line = ""
         for word in words:
             test_line = current_line + word + " "
             if self.font.size(test_line)[0] < max_width:
                 current_line = test_line
             else:
-                lines.append(current_line.strip())
+                wrapped_lines.append(current_line.strip())
                 current_line = word + " "
-        lines.append(current_line.strip())
-        return lines
+        wrapped_lines.append(current_line.strip())
+        return wrapped_lines
     
     def update(self, now):
         full_text = self.lines[self.current_line_index]
-        if not self.line_fully_displayed and self.char_index < len(full_text):
-            if now - self.last_update > self.letter_delay:
-                self.typed_text += full_text[self.char_index]
-                self.char_index += 1
-                self.last_update = now
-            if self.char_index == len(full_text):
-                self.line_fully_displayed = True
+        if self.current_line_index < len(self.lines):
+            if not self.line_fully_displayed and self.char_index < len(full_text):
+                if now - self.last_update > self.letter_delay:
+                    self.typed_text += full_text[self.char_index]
+                    self.char_index += 1
+                    self.last_update = now
+                if self.char_index == len(full_text):
+                    self.line_fully_displayed = True
 
+        # Blink arrow
         if now - self.arrow_last_blink > self.blink_speed:
             self.arrow_visible = not self.arrow_visible
             self.arrow_last_blink = now
@@ -196,24 +209,18 @@ class TextBoxController:
                 self.line_fully_displayed = True
         return 'continue'
     
-    def handle_hit_or_stand_input(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_h:
-                Person().receive_card()
-            elif event.key == pygame.K_s:
-                pass
-
     def draw(self, surface):
         pygame.draw.rect(surface, TEXTBOX_DARK_GREY, self.rect, border_radius=self.border_radius)
         pygame.draw.rect(surface, TEXTBOX_LIGHT_GREY, self.rect, 3, border_radius=self.border_radius)
 
-        lines = self.wrap_text(self.typed_text, self.rect.width - self.padding)
+        wrapped_lines = self.wrap_text(self.typed_text)
         x_offset = self.rect.x + self.padding
         y_offset = self.rect.y + self.padding
-        for i, line in enumerate(lines):
+
+        for i, line in enumerate(wrapped_lines):
             surface.blit(self.font.render(line, True, WHITE), (x_offset, y_offset + i * self.line_height))
 
-        if self.line_fully_displayed and self.arrow_visible:
+        if self.line_fully_displayed and self.arrow_visible and self.show_arrow:
             pygame.draw.polygon(surface, WHITE, [
                 (ARROW_X, ARROW_Y),
                 (ARROW_X + ARROW_SIZE, ARROW_Y),
