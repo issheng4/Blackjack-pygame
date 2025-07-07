@@ -19,6 +19,13 @@ SUITS = ['spades', 'clubs', 'hearts', 'diamonds']
 
 
 class Card:
+    _SUIT_SYMBOLS = {
+    'spades': '♤',
+    'clubs': '♧',
+    'hearts': '♡',
+    'diamonds': '♢'
+    }  
+
     def __init__(self, value, suit):
         self.value = value
         self.suit = suit
@@ -53,7 +60,8 @@ class Card:
             surface.blit(self.image, (x, y))
         
     def __repr__(self):
-        return f"Card('{self.value}', '{self.suit}')"
+        return f'{self.value}{self._SUIT_SYMBOLS[self.suit]}'
+        
     
 
 

@@ -37,4 +37,6 @@ player_turn_lines = [
     "Alright, then. My turn."
 ]
 
-HIT_OR_STAND_INPUT = ["[H] Hit     [S] Stand"]
+HIT_OR_STAND_INPUT = [
+    "Your turn. Press [H] to hit or [S] to stand."
+]
