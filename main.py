@@ -9,6 +9,7 @@ from constants import (
     ARROW_BLINK_SPEED_MS, ARROW_SIZE, ARROW_X, ARROW_Y,
     CARD_WIDTH, CARD_HEIGHT,
     FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y, PLAYER_CARD_DISPLACEMENT_X, PLAYER_CARD_DISPLACEMENT_Y, FIRST_DEALER_CARD_X, FIRST_DEALER_CARD_Y, DEALER_CARD_DISPLACEMENT_X,
+    SCOREBOARD_TEXT_X, SCOREBOARD_TITLE_Y, SCOREBOARD_PLAYER_Y, SCOREBOARD_DEALER_Y,
     CARD_BACK,
 )
 from dialogue import INTRO_DIALOGUE_LINES, player_turn_lines, HIT_OR_STAND_INPUT
@@ -42,7 +43,8 @@ textbox = TextBoxController(font, text_rect)
 intro_lines_set = False
 dealing_lines_set = False
 player_turn_lines_set = False
-'''endgame_lines_set = False'''
+endgame_lines_set = False
+resolution_lines_set = False
 
 # Deal timing events
 DEAL_PLAYER_1 = pygame.USEREVENT + 1
@@ -76,16 +78,25 @@ def handle_dealing_input(event):
         has_started_dealing = True
 
     if event.type == DEAL_PLAYER_1:
-        player.receive_card(deck)
+        #player.receive_card(deck)
+        # for testing:
+        player.hand.add_card(Card('A', 'spades'))
 
     elif event.type == DEAL_DEALER_1:
-        dealer.receive_card(deck)
+        #dealer.receive_card(deck)
+        # for testing:
+        dealer.hand.add_card(Card('2', 'spades'))
 
     elif event.type == DEAL_PLAYER_2:
-        player.receive_card(deck)
+        #player.receive_card(deck)
+        # for testing:
+        player.hand.add_card(Card('K', 'spades'))
 
     elif event.type == DEAL_DEALER_2:
-        dealer.receive_card(deck)
+        #dealer.receive_card(deck)
+        # for testing:
+        dealer.hand.add_card(Card('A', 'spades'))
+
         pygame.time.set_timer(DEAL_DONE, 20, loops=1)
 
     elif event.type == DEAL_DONE:
@@ -123,7 +134,7 @@ def update_intro(now):
     if not intro_lines_set:
         textbox.set_lines(INTRO_DIALOGUE_LINES)
         intro_lines_set = True
-    textbox.update(now)
+    textbox.animate(now)
 
 
 def update_dealing(now):
@@ -132,34 +143,60 @@ def update_dealing(now):
     if not dealing_lines_set:
         textbox.set_lines(["..."],show_arrow=False)
         dealing_lines_set = True
-    textbox.update(now)
+    textbox.animate(now)
 
-''' if player.hand.calculate_total() == 21:
+
+def blackjack_check():
+    global endgame_lines_set, game_state
+    # Check if player has a blackjack
+    if player.hand.calculate_total() == 21:
+        # Check if dealer could have blackjack based on first card
         if dealer.hand.cards[0].value in ['J', 'Q', 'K', 'A'] and not endgame_lines_set:
-            print("Wow, a blackjack! Let's reveal the dealer's hidden card and see if I have one too....")
-            endgame_lines_set = True
+
+            if not endgame_lines_set:
+                textbox.set_lines(["Wow, a blackjack! Let's reveal the dealer's hidden card and see if I have one too...."])
+                endgame_lines_set = True
+            textbox.animate(now)
+
+            # Check if dealer also has a blackjack
             if dealer.hand.calculate_total() == 21:
                 endgame_lines_set = False
-                game_state = GameState.RESOLUTION
+                #game_state = GameState.RESOLUTION
+                return True
         else:
+            # Only player has a blackjack
             #perform_endgame(player.name, 'blackjack', dealer.name)
-            print("Wow a blackjack!")
-            player.games_won += 1
-            game_state = GameState.RESOLUTION
-'''
+
+            if not endgame_lines_set:
+                textbox.set_lines(["Wow a blackjack!"])
+                endgame_lines_set = True
+                player.games_won += 1
+            textbox.animate(now)
+
+            
+            #game_state = GameState.RESOLUTION
+            return True
+    else:
+        return False
+
 def update_player_turn(now):
     global player_turn_lines_set
-    if not player_turn_lines_set:
+
+    if not blackjack_check() and not player_turn_lines_set:
         textbox.set_lines(HIT_OR_STAND_INPUT, show_arrow=False)
         player_turn_lines_set = True
-    textbox.update(now)
+    textbox.animate(now)
 
 def update_dealer_turn(now):
     pass
 
-def update_resolution(now):
-    global has_started_dealing, game_state, deck
-    has_started_dealing = False
+def game_reset():
+    global game_state, intro_lines_set, dealing_lines_set, player_turn_lines_set, endgame_lines_set, resolution_lines_set
+    intro_lines_set = False
+    dealing_lines_set = False
+    player_turn_lines_set = False
+    endgame_lines_set = False
+    resolution_lines_set = False
     player.reset_hand()
     dealer.reset_hand()
     deck = Deck()
@@ -167,12 +204,37 @@ def update_resolution(now):
     print(f'=====  GAME SCORE [ {player.name}: {player.games_won} | {dealer.name}: {dealer.games_won} ]  =====')
     game_state = GameState.DEALING
 
+def update_resolution(now):
+    global has_started_dealing, game_state, deck, resolution_lines_set
+    has_started_dealing = False
+
+    if not resolution_lines_set:
+        textbox.set_lines(["..."],show_arrow=False)
+        resolution_lines_set = True
+    textbox.animate(now)
+
+    if resolution_lines_set:
+        game_reset()
+    
+
 
 
 
 # -------------------------------------
 # 3. Drawing on screen
 # ---------------------------------------
+
+def draw_scoreboard():
+    scoreboard_title = font.render(f"Games Won", True, WHITE)
+    scoreboard_player = font.render(f"Player: {player.games_won}", True, WHITE)
+    scoreboard_dealer = font.render(f"Dealer: {dealer.games_won}", True, WHITE)
+
+    screen.blit(scoreboard_title, (SCOREBOARD_TEXT_X, SCOREBOARD_TITLE_Y))
+    screen.blit(scoreboard_player, (SCOREBOARD_TEXT_X, SCOREBOARD_PLAYER_Y))
+    screen.blit(scoreboard_dealer, (SCOREBOARD_TEXT_X, SCOREBOARD_DEALER_Y))
+
+
+
 
 def draw_playing():
     player_x, player_y = FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y
@@ -190,6 +252,8 @@ def draw_playing():
             card.render(screen, dealer_x, dealer_y)
         dealer_x -= DEALER_CARD_DISPLACEMENT_X
 
+    draw_scoreboard()
+
 
 def draw_screen():
     if game_state == GameState.INTRO and textbox.current_line_index < 11:
@@ -199,7 +263,7 @@ def draw_screen():
 
     textbox.draw(screen)
 
-    if game_state in [GameState.DEALING, GameState.PLAYER_TURN]:
+    if game_state in [GameState.DEALING, GameState.PLAYER_TURN, GameState.DEALER_TURN, GameState. RESOLUTION]:
         draw_playing()
 
     pygame.display.flip()

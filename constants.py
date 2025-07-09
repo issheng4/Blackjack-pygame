@@ -57,6 +57,12 @@ FIRST_DEALER_CARD_Y = 30
 DEALER_CARD_DISPLACEMENT_X = 130
 DEALER_CARD_DISPLACEMENT_Y = 0
 
+# Scoreboard positioning
+SCOREBOARD_TEXT_X = 20
+SCOREBOARD_TITLE_Y = 30
+SCOREBOARD_PLAYER_Y = 60
+SCOREBOARD_DEALER_Y = 90
+
 # Draw back of card
 CARD_BACK = pygame.transform.smoothscale(
     pygame.image.load("assets/cards/back.png"),

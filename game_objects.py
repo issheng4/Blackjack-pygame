@@ -180,7 +180,7 @@ class TextBoxController:
         wrapped_lines.append(current_line.strip())
         return wrapped_lines
     
-    def update(self, now):
+    def animate(self, now):
         full_text = self.lines[self.current_line_index]
         if self.current_line_index < len(self.lines):
             if not self.line_fully_displayed and self.char_index < len(full_text):
