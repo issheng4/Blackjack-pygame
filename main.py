@@ -24,7 +24,7 @@ font = pygame.font.SysFont(FONT_NAME, FONT_SIZE)
 clock = pygame.time.Clock()
 
 # Game objects
-player = Person('player', 'You')
+player = Person('player', 'Player')
 dealer = Person('dealer', 'The Dealer')
 deck = Deck()
 deck.shuffle()
@@ -43,6 +43,8 @@ textbox = TextBoxController(font, text_rect)
 intro_lines_set = False
 dealing_lines_set = False
 player_turn_lines_set = False
+player_stands_lines_ready = False
+player_stands_lines_set = False
 endgame_lines_set = False
 resolution_lines_set = False
 
@@ -53,6 +55,8 @@ DEAL_PLAYER_2 = pygame.USEREVENT + 3
 DEAL_DEALER_2 = pygame.USEREVENT + 4
 DEAL_DONE = pygame.USEREVENT + 5
 has_started_dealing = False
+
+manual_hand_input_for_testing = False
 
 
 
@@ -69,7 +73,7 @@ def handle_intro_input(event):
 
 
 def handle_dealing_input(event):
-    global has_started_dealing, game_state
+    global has_started_dealing, game_state, manual_hand_input_for_testing
     if game_state == GameState.DEALING and has_started_dealing == False:
         pygame.time.set_timer(DEAL_PLAYER_1, 300, loops=1)
         pygame.time.set_timer(DEAL_DEALER_1, 600, loops=1)
@@ -77,42 +81,63 @@ def handle_dealing_input(event):
         pygame.time.set_timer(DEAL_DEALER_2, 1200, loops=1)
         has_started_dealing = True
 
-    if event.type == DEAL_PLAYER_1:
-        #player.receive_card(deck)
-        # for testing:
-        player.hand.add_card(Card('A', 'spades'))
+    if manual_hand_input_for_testing == True:
+        if event.type == DEAL_PLAYER_1:
+            player.hand.add_card(Card('A', 'spades'))
 
-    elif event.type == DEAL_DEALER_1:
-        #dealer.receive_card(deck)
-        # for testing:
-        dealer.hand.add_card(Card('2', 'spades'))
+        elif event.type == DEAL_DEALER_1:
+            dealer.hand.add_card(Card('2', 'spades'))
 
-    elif event.type == DEAL_PLAYER_2:
-        #player.receive_card(deck)
-        # for testing:
-        player.hand.add_card(Card('K', 'spades'))
+        elif event.type == DEAL_PLAYER_2:
+            player.hand.add_card(Card('K', 'spades'))
 
-    elif event.type == DEAL_DEALER_2:
-        #dealer.receive_card(deck)
-        # for testing:
-        dealer.hand.add_card(Card('A', 'spades'))
+        elif event.type == DEAL_DEALER_2:
+            dealer.hand.add_card(Card('A', 'spades'))
+            pygame.time.set_timer(DEAL_DONE, 20, loops=1)
 
-        pygame.time.set_timer(DEAL_DONE, 20, loops=1)
+    else:
+        if event.type == DEAL_PLAYER_1:
+            player.receive_card(deck)
 
-    elif event.type == DEAL_DONE:
+        elif event.type == DEAL_DEALER_1:
+            dealer.receive_card(deck)
+
+        elif event.type == DEAL_PLAYER_2:
+            player.receive_card(deck)
+
+        elif event.type == DEAL_DEALER_2:
+            dealer.receive_card(deck)
+            pygame.time.set_timer(DEAL_DONE, 20, loops=1)
+
+    if event.type == DEAL_DONE:
         print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
         game_state = GameState.PLAYER_TURN
 
 
 
 def handle_player_turn_input(event):    
-    global game_state, has_started_dealing
+    global game_state, has_started_dealing, player_stands_lines_ready, player_stands_lines_set
     if event.type == pygame.KEYDOWN:
+        # not working yet - only does it when s pressed. also shouldn't still be hitting when clicking h
+        if textbox.line_fully_displayed and textbox.current_line_index == len(textbox.lines) - 1:
+                    game_state = GameState.DEALER_TURN
         if event.key == pygame.K_h:
-            player.receive_card(deck)
+            if textbox.line_fully_displayed:
+                player.receive_card(deck)
+                print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
+            #if player_stands_lines_ready and player_stands_lines_set:
+    
+           # textbox.handle_dialogue_input(event)
+
+        elif event.key == pygame.K_s:
+            player_stands_lines_ready = True
+            textbox.handle_dialogue_input(event)
+
+            
         # reset hand - for testing
-        if event.key == pygame.K_r:
+        elif event.key == pygame.K_r:
             game_state = GameState.RESOLUTION
+            return
 
 def handle_dealer_turn_input(event):    
     pass
@@ -141,7 +166,7 @@ def update_dealing(now):
     global dealing_lines_set, game_state, endgame_lines_set
 
     if not dealing_lines_set:
-        textbox.set_lines(["..."],show_arrow=False)
+        textbox.set_lines(["And I deal..."],show_arrow=False)
         dealing_lines_set = True
     textbox.animate(now)
 
@@ -149,7 +174,7 @@ def update_dealing(now):
 def blackjack_check():
     global endgame_lines_set, game_state
     # Check if player has a blackjack
-    if player.hand.calculate_total() == 21:
+    if player.hand.total == 21 and len(player.hand.cards) == 2:
         # Check if dealer could have blackjack based on first card
         if dealer.hand.cards[0].value in ['J', 'Q', 'K', 'A'] and not endgame_lines_set:
 
@@ -159,7 +184,7 @@ def blackjack_check():
             textbox.animate(now)
 
             # Check if dealer also has a blackjack
-            if dealer.hand.calculate_total() == 21:
+            if dealer.hand.total == 21:
                 endgame_lines_set = False
                 #game_state = GameState.RESOLUTION
                 return True
@@ -180,18 +205,25 @@ def blackjack_check():
         return False
 
 def update_player_turn(now):
-    global player_turn_lines_set
+    global player_turn_lines_set, player_stands_lines_ready, player_stands_lines_set
 
     if not blackjack_check() and not player_turn_lines_set:
         textbox.set_lines(HIT_OR_STAND_INPUT, show_arrow=False)
         player_turn_lines_set = True
+
+    if player_stands_lines_ready and not player_stands_lines_set:
+        textbox.set_lines(["You stand, alright.", "Now it's my turn."])
+        player_stands_lines_set = True
+        
     textbox.animate(now)
 
+
+
 def update_dealer_turn(now):
-    pass
+    print("Dealer turn, yay")
 
 def game_reset():
-    global game_state, intro_lines_set, dealing_lines_set, player_turn_lines_set, endgame_lines_set, resolution_lines_set
+    global game_state, intro_lines_set, dealing_lines_set, player_turn_lines_set, endgame_lines_set, resolution_lines_set, deck
     intro_lines_set = False
     dealing_lines_set = False
     player_turn_lines_set = False

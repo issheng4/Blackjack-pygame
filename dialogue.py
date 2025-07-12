@@ -38,5 +38,12 @@ player_turn_lines = [
 ]
 
 HIT_OR_STAND_INPUT = [
-    "Your turn. Press [H] to hit or [S] to stand."
+    "Your turn. Press [H] to hit or [S] to stand.",
+    "Good choice. Press [H] to hit or [S] to stand.",
+    "Nice. Press [H] to hit or [S] to stand.",
+    "Getting a lot of cards. Press [H] to hit or [S] to stand.",
+    "Now, now. Press [H] to hit or [S] to stand.",
+    "Crikey. Press [H] to hit or [S] to stand.",
+    "This is getting a bit silly."
+    "","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
 ]

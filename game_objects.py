@@ -108,6 +108,10 @@ class Hand:
 
     def __repr__(self):
         return str(self.cards)
+    
+    @property
+    def total(self):
+        return self.calculate_total()
 
 
 class Person:
