@@ -42,9 +42,12 @@ textbox = TextBoxController(font, text_rect)
 # Dialogue flags
 intro_lines_set = False
 dealing_lines_set = False
+blackjack_check_done = False
 player_turn_lines_set = False
 player_stands_lines_ready = False
 player_stands_lines_set = False
+player_bust_lines_ready = False
+player_bust_lines_set = False
 endgame_lines_set = False
 resolution_lines_set = False
 
@@ -56,7 +59,7 @@ DEAL_DEALER_2 = pygame.USEREVENT + 4
 DEAL_DONE = pygame.USEREVENT + 5
 has_started_dealing = False
 
-manual_hand_input_for_testing = False
+manual_hand_input_for_testing = True
 
 
 
@@ -86,7 +89,7 @@ def handle_dealing_input(event):
             player.hand.add_card(Card('A', 'spades'))
 
         elif event.type == DEAL_DEALER_1:
-            dealer.hand.add_card(Card('2', 'spades'))
+            dealer.hand.add_card(Card('3', 'spades'))
 
         elif event.type == DEAL_PLAYER_2:
             player.hand.add_card(Card('K', 'spades'))
@@ -115,29 +118,45 @@ def handle_dealing_input(event):
 
 
 
-def handle_player_turn_input(event):    
-    global game_state, has_started_dealing, player_stands_lines_ready, player_stands_lines_set
-    if event.type == pygame.KEYDOWN:
-        # not working yet - only does it when s pressed. also shouldn't still be hitting when clicking h
-        if textbox.line_fully_displayed and textbox.current_line_index == len(textbox.lines) - 1:
-                    game_state = GameState.DEALER_TURN
-        if event.key == pygame.K_h:
+def handle_player_turn_input(event):
+    global game_state, player_stands_lines_ready, player_stands_lines_set, player_turn_lines_set, player_bust_lines_set
+
+    if event.type != pygame.KEYDOWN:
+        return
+
+    # If bust text is active, only let user advance it
+    if player_bust_lines_set:
+        result = textbox.handle_dialogue_input(event)
+        if result == 'done':
+            game_state = GameState.RESOLUTION
+            dealer.games_won += 1
+        return
+
+    # If stand dialogue is active
+    if player_stands_lines_set:
+        result = textbox.handle_dialogue_input(event)
+        if result == 'done':
+            game_state = GameState.DEALER_TURN
+        return
+
+    # If player has not stood or busted
+    if not player_stands_lines_ready:
+        if event.key == pygame.K_h and player.hand.total <= 21:
             if textbox.line_fully_displayed:
                 player.receive_card(deck)
-                print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
-            #if player_stands_lines_ready and player_stands_lines_set:
-    
-           # textbox.handle_dialogue_input(event)
-
-        elif event.key == pygame.K_s:
-            player_stands_lines_ready = True
+                print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.hand.total}  ////")
             textbox.handle_dialogue_input(event)
 
-            
-        # reset hand - for testing
+        elif event.key == pygame.K_s and player.hand.total <= 21:
+            player_stands_lines_ready = True
+
         elif event.key == pygame.K_r:
             game_state = GameState.RESOLUTION
-            return
+
+
+
+            
+        
 
 def handle_dealer_turn_input(event):    
     pass
@@ -171,51 +190,89 @@ def update_dealing(now):
     textbox.animate(now)
 
 
-def blackjack_check():
-    global endgame_lines_set, game_state
-    # Check if player has a blackjack
-    if player.hand.total == 21 and len(player.hand.cards) == 2:
-        # Check if dealer could have blackjack based on first card
-        if dealer.hand.cards[0].value in ['J', 'Q', 'K', 'A'] and not endgame_lines_set:
+def blackjack_check(now):
+    global endgame_lines_set, game_state, blackjack_check_done
 
-            if not endgame_lines_set:
-                textbox.set_lines(["Wow, a blackjack! Let's reveal the dealer's hidden card and see if I have one too...."])
-                endgame_lines_set = True
-            textbox.animate(now)
-
-            # Check if dealer also has a blackjack
-            if dealer.hand.total == 21:
-                endgame_lines_set = False
-                #game_state = GameState.RESOLUTION
-                return True
-        else:
-            # Only player has a blackjack
-            #perform_endgame(player.name, 'blackjack', dealer.name)
-
-            if not endgame_lines_set:
-                textbox.set_lines(["Wow a blackjack!"])
-                endgame_lines_set = True
-                player.games_won += 1
-            textbox.animate(now)
-
-            
-            #game_state = GameState.RESOLUTION
-            return True
-    else:
+    if blackjack_check_done:
         return False
 
-def update_player_turn(now):
-    global player_turn_lines_set, player_stands_lines_ready, player_stands_lines_set
+    # Player has blackjack
+    if player.hand.total == 21 and len(player.hand.cards) == 2:
+        dealer_first_card = dealer.hand.cards[0].value
 
-    if not blackjack_check() and not player_turn_lines_set:
+        # Dealer may also have blackjack (if first card is 10 or Ace)
+        if dealer_first_card in ['10', 'J', 'Q', 'K', 'A']:
+            if not endgame_lines_set:
+                textbox.set_lines([
+                    "Wow, a blackjack!",
+                    "Let's reveal the dealer's hidden card and see if I have one too..."
+                ])
+                endgame_lines_set = True
+            textbox.animate(now)
+
+            # Wait until dialogue completes before checking dealer's total
+            if textbox.line_fully_displayed and textbox.current_line_index == 1:
+                if dealer.hand.total == 21 and len(dealer.hand.cards) == 2:
+                    textbox.set_lines([
+                        "Looks like we both have blackjack!",
+                        "It's a tie!"
+                    ])
+                else:
+                    textbox.set_lines([
+                        "Nope, I don’t have it. You win!"
+                    ])
+                    player.games_won += 1
+
+                blackjack_check_done = True
+                game_state = GameState.RESOLUTION
+            return True
+
+        else:
+            # Dealer can't have blackjack
+            if not endgame_lines_set:
+                textbox.set_lines(["Wow, a blackjack!"])
+                endgame_lines_set = True
+            textbox.animate(now)
+
+            if textbox.line_fully_displayed:
+                player.games_won += 1
+                blackjack_check_done = True
+                game_state = GameState.RESOLUTION
+            return True
+
+    return False
+
+    
+def update_player_turn(now):
+    global player_turn_lines_set, player_stands_lines_ready, player_stands_lines_set, player_bust_lines_set
+
+    if player.hand.total > 21:
+        # Player bust has highest priority
+        if not player_bust_lines_set:
+            textbox.set_lines(["Ah! Looks like you've bust.", "Let's go again."])
+            player_bust_lines_set = True
+
+    if blackjack_check(now):
+        return  # Let blackjack text + state play out
+
+    # Then proceed with player turn if no blackjack
+    if not player_turn_lines_set:
         textbox.set_lines(HIT_OR_STAND_INPUT, show_arrow=False)
         player_turn_lines_set = True
 
-    if player_stands_lines_ready and not player_stands_lines_set:
+    elif not player_turn_lines_set:
+        # Regular hit/stand prompt
+        textbox.set_lines(HIT_OR_STAND_INPUT, show_arrow=False)
+        player_turn_lines_set = True
+
+    elif player_stands_lines_ready and not player_stands_lines_set:
+        # Stand dialogue
         textbox.set_lines(["You stand, alright.", "Now it's my turn."])
         player_stands_lines_set = True
-        
+
     textbox.animate(now)
+
+
 
 
 
@@ -223,10 +280,15 @@ def update_dealer_turn(now):
     print("Dealer turn, yay")
 
 def game_reset():
-    global game_state, intro_lines_set, dealing_lines_set, player_turn_lines_set, endgame_lines_set, resolution_lines_set, deck
+    global game_state, intro_lines_set, dealing_lines_set, player_turn_lines_set, endgame_lines_set, resolution_lines_set, deck, blackjack_check_done, player_stands_lines_ready, player_stands_lines_set, player_bust_lines_set, player_bust_lines_ready
     intro_lines_set = False
     dealing_lines_set = False
+    blackjack_check_done = False
     player_turn_lines_set = False
+    player_stands_lines_ready = False
+    player_stands_lines_set = False
+    player_bust_lines_ready = False
+    player_bust_lines_set = False
     endgame_lines_set = False
     resolution_lines_set = False
     player.reset_hand()
