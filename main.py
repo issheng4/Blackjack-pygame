@@ -14,7 +14,7 @@ from constants import (
 )
 from dialogue import INTRO_DIALOGUE_LINES, player_turn_lines, HIT_OR_STAND_INPUT
 from game_objects import Card, Deck, Hand, Person, TextBoxController, GameState
-
+import time
 
 # Pygame setup
 pygame.init()
@@ -52,12 +52,16 @@ resolution_lines_set = False
 dealer_second_card_hiden = True
 
 # Deal timing events
-DEAL_PLAYER_1 = pygame.USEREVENT + 1
-DEAL_DEALER_1 = pygame.USEREVENT + 2
-DEAL_PLAYER_2 = pygame.USEREVENT + 3
-DEAL_DEALER_2 = pygame.USEREVENT + 4
+DEAL_PLAYER_CARD_1 = pygame.USEREVENT + 1
+DEAL_DEALER_CARD_1 = pygame.USEREVENT + 2
+DEAL_PLAYER_CARD_2 = pygame.USEREVENT + 3
+DEAL_DEALER_CARD_2 = pygame.USEREVENT + 4
 DEAL_DONE = pygame.USEREVENT + 5
 has_started_dealing = False
+
+DEALER_TURN_CARD_REVEAL = pygame.USEREVENT + 6
+dealing_status = 'not_started'
+DEALER_HIT = pygame.USEREVENT + 7
 
 manual_hand_input_for_testing = True
 
@@ -77,38 +81,32 @@ def handle_intro_input(event):
 
 def handle_dealing_input(event):
     global has_started_dealing, game_state, manual_hand_input_for_testing
-    if game_state == GameState.DEALING and has_started_dealing == False:
-        pygame.time.set_timer(DEAL_PLAYER_1, 300, loops=1)
-        pygame.time.set_timer(DEAL_DEALER_1, 600, loops=1)
-        pygame.time.set_timer(DEAL_PLAYER_2, 900, loops=1)
-        pygame.time.set_timer(DEAL_DEALER_2, 1200, loops=1)
+    if has_started_dealing == False:
+        pygame.time.set_timer(DEAL_PLAYER_CARD_1, 300, loops=1)
+        pygame.time.set_timer(DEAL_DEALER_CARD_1, 600, loops=1)
+        pygame.time.set_timer(DEAL_PLAYER_CARD_2, 900, loops=1)
+        pygame.time.set_timer(DEAL_DEALER_CARD_2, 1200, loops=1)
         has_started_dealing = True
 
     if manual_hand_input_for_testing == False:
-        if event.type == DEAL_PLAYER_1:
+        if event.type == DEAL_PLAYER_CARD_1:
             player.hand.add_card(Card('A', 'spades'))
-
-        elif event.type == DEAL_DEALER_1:
+        elif event.type == DEAL_DEALER_CARD_1:
             dealer.hand.add_card(Card('Q', 'spades'))
-
-        elif event.type == DEAL_PLAYER_2:
+        elif event.type == DEAL_PLAYER_CARD_2:
             player.hand.add_card(Card('K', 'spades'))
-
-        elif event.type == DEAL_DEALER_2:
+        elif event.type == DEAL_DEALER_CARD_2:
             dealer.hand.add_card(Card('10', 'spades'))
             pygame.time.set_timer(DEAL_DONE, 20, loops=1)
 
     else:
-        if event.type == DEAL_PLAYER_1:
+        if event.type == DEAL_PLAYER_CARD_1:
             player.receive_card(deck)
-
-        elif event.type == DEAL_DEALER_1:
+        elif event.type == DEAL_DEALER_CARD_1:
             dealer.receive_card(deck)
-
-        elif event.type == DEAL_PLAYER_2:
+        elif event.type == DEAL_PLAYER_CARD_2:
             player.receive_card(deck)
-
-        elif event.type == DEAL_DEALER_2:
+        elif event.type == DEAL_DEALER_CARD_2:
             dealer.receive_card(deck)
             pygame.time.set_timer(DEAL_DONE, 20, loops=1)
 
@@ -167,11 +165,31 @@ def handle_player_turn_input(event):
 
 
 
-            
-        
 
-def handle_dealer_turn_input(event):    
-    pass
+def handle_dealer_turn_input(event):
+    global dealing_status, dealer_second_card_hiden, game_state
+    if dealing_status == 'not_started':
+        dealing_status = 'reveal'
+        pygame.time.set_timer(DEALER_TURN_CARD_REVEAL, 300, loops=1)
+
+    elif event.type == DEALER_TURN_CARD_REVEAL:
+            dealer_second_card_hiden = False
+            print('Second card revealed')
+            dealing_status = 'dealing_wait'
+            pygame.time.set_timer(DEALER_HIT, 600, loops=1)
+    
+    elif event.type == DEALER_HIT and dealing_status in ('dealing', 'dealing_wait'):
+        if dealer.hand.total < 17:
+            dealer.receive_card(deck)
+            print('Card dealt, total:', dealer.hand.total)
+            dealing_status = 'dealing'
+            pygame.time.set_timer(DEALER_HIT, 600, loops=1)
+        else:
+            pygame.time.set_timer(DEALER_HIT, 0)
+            print('Dealer finished hitting')
+            dealing_status = 'done'
+
+
 
 def handle_resolution_input(event):    
     pass
@@ -219,7 +237,7 @@ def update_player_turn(now):
 
             else:
                 # Dealer might have blackjack — wait before revealing
-                textbox.set_lines(["Wow, you got a blackjack!", "Let's see if I've got one too...", " "])
+                textbox.set_lines(["Wow, you got a blackjack!", "But wait a moment.", "Let's see if I've got one too...", " "])
                 blackjack_stage = 'reveal'
 
         elif blackjack_stage == 'reveal':
@@ -261,7 +279,8 @@ def update_player_turn(now):
 
 
 def update_dealer_turn(now):
-    print("Dealer turn, yay")
+    # dealer turn ends when dealer hand is 17
+    pass
 
 def game_reset():
     global game_state, deck, intro_lines_set, dealing_lines_set, blackjack_stage, player_turn_lines_set, resolution_lines_set, player_stands_lines_ready, player_stands_lines_set, player_bust_lines_set, player_bust_lines_ready, dealer_second_card_hiden
