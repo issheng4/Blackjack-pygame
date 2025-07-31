@@ -1,7 +1,6 @@
 import pygame
 from constants import (
     SCREEN_WIDTH, SCREEN_HEIGHT,
-    INTRO, DEALING, PLAYER_TURN, DEALER_TURN, RESOLUTION,
     FONT_NAME, FONT_SIZE,
     WHITE, BLACK, TABLE_GREEN, BG_DARK_GREY, TEXTBOX_DARK_GREY, TEXTBOX_LIGHT_GREY, SHADOW,
     TEXTBOX_WIDTH, TEXTBOX_HEIGHT, TEXTBOX_X, TEXTBOX_Y, TEXTBOX_BORDER_RADIUS,
@@ -14,7 +13,6 @@ from constants import (
 )
 from dialogue import INTRO_DIALOGUE_LINES, player_turn_lines, HIT_OR_STAND_INPUT
 from game_objects import Card, Deck, Hand, Person, TextBoxController, GameState
-import time
 
 # Pygame setup
 pygame.init()
@@ -39,7 +37,8 @@ now = 0
 text_rect = pygame.Rect(TEXTBOX_X, TEXTBOX_Y, TEXTBOX_WIDTH, TEXTBOX_HEIGHT)
 textbox = TextBoxController(font, text_rect)
 
-# Dialogue flags
+# Flags
+has_started_dealing = False
 intro_lines_set = False
 dealing_lines_set = False
 blackjack_stage = 'not_started'
@@ -48,6 +47,8 @@ player_stands_lines_ready = False
 player_stands_lines_set = False
 player_bust_lines_ready = False
 player_bust_lines_set = False
+dealer_turn_lines_set = False
+dealer_turn_status = 'not_started'
 resolution_lines_set = False
 dealer_second_card_hiden = True
 
@@ -57,11 +58,10 @@ DEAL_DEALER_CARD_1 = pygame.USEREVENT + 2
 DEAL_PLAYER_CARD_2 = pygame.USEREVENT + 3
 DEAL_DEALER_CARD_2 = pygame.USEREVENT + 4
 DEAL_DONE = pygame.USEREVENT + 5
-has_started_dealing = False
 
 DEALER_TURN_CARD_REVEAL = pygame.USEREVENT + 6
-dealing_status = 'not_started'
 DEALER_HIT = pygame.USEREVENT + 7
+DEALER_TURN_OVER = pygame.USEREVENT + 8
 
 manual_hand_input_for_testing = True
 
@@ -128,7 +128,7 @@ def handle_player_turn_input(event):
     if player_bust_lines_set:
         result = textbox.handle_dialogue_input(event)
         if result == 'done':
-            game_state = GameState.RESOLUTION
+            game_state = GameState.RESET
         return
 
     # Blackjack flow
@@ -138,7 +138,7 @@ def handle_player_turn_input(event):
             if blackjack_stage == 'reveal':
                 blackjack_stage = 'resolve'
             elif blackjack_stage == 'done':
-                game_state = GameState.RESOLUTION
+                game_state = GameState.RESET
         return
 
     # If stand dialogue is active
@@ -160,40 +160,46 @@ def handle_player_turn_input(event):
             player_stands_lines_ready = True
 
         elif event.key == pygame.K_r:
-            game_state = GameState.RESOLUTION
+            game_state = GameState.RESET
 
 
 
 
 
 def handle_dealer_turn_input(event):
-    global dealing_status, dealer_second_card_hiden, game_state
-    if dealing_status == 'not_started':
-        dealing_status = 'reveal'
+    global dealer_turn_status, dealer_second_card_hiden, game_state
+    if dealer_turn_status == 'not_started':
+        dealer_turn_status = 'reveal'
         pygame.time.set_timer(DEALER_TURN_CARD_REVEAL, 300, loops=1)
 
     elif event.type == DEALER_TURN_CARD_REVEAL:
             dealer_second_card_hiden = False
             print('Second card revealed')
-            dealing_status = 'dealing_wait'
+            dealer_turn_status = 'dealing_wait'
             pygame.time.set_timer(DEALER_HIT, 600, loops=1)
     
-    elif event.type == DEALER_HIT and dealing_status in ('dealing', 'dealing_wait'):
+    elif event.type == DEALER_HIT and dealer_turn_status in ('dealing', 'dealing_wait'):
         if dealer.hand.total < 17:
             dealer.receive_card(deck)
             print('Card dealt, total:', dealer.hand.total)
-            dealing_status = 'dealing'
+            dealer_turn_status = 'dealing'
             pygame.time.set_timer(DEALER_HIT, 600, loops=1)
         else:
             pygame.time.set_timer(DEALER_HIT, 0)
             print('Dealer finished hitting')
-            dealing_status = 'done'
+            dealer_turn_status = 'done'
+            pygame.time.set_timer(DEALER_TURN_OVER, 20, loops=1)
+    
+    elif event.type == DEALER_TURN_OVER:
+        game_state = GameState.RESOLUTION
 
 
 
 def handle_resolution_input(event):    
     pass
 
+def handle_reset_input(event):
+    pass
 
 
 
@@ -212,7 +218,7 @@ def update_intro(now):
 
 
 def update_dealing(now):
-    global dealing_lines_set, game_state
+    global dealing_lines_set
 
     if not dealing_lines_set:
         textbox.set_lines(["And I deal..."],show_arrow=False)
@@ -280,26 +286,16 @@ def update_player_turn(now):
 
 def update_dealer_turn(now):
     # dealer turn ends when dealer hand is 17
-    pass
+    global dealer_turn_lines_set
+
+    if not dealer_turn_lines_set:
+        textbox.set_lines(["..."],show_arrow=False)
+        dealer_turn_lines_set = True
+    textbox.animate(now)
+    
 
 def game_reset():
-    global game_state, deck, intro_lines_set, dealing_lines_set, blackjack_stage, player_turn_lines_set, resolution_lines_set, player_stands_lines_ready, player_stands_lines_set, player_bust_lines_set, player_bust_lines_ready, dealer_second_card_hiden
-    intro_lines_set = False
-    dealing_lines_set = False
-    blackjack_stage = 'not_started'
-    player_turn_lines_set = False
-    player_stands_lines_ready = False
-    player_stands_lines_set = False
-    player_bust_lines_ready = False
-    player_bust_lines_set = False
-    resolution_lines_set = False
-    dealer_second_card_hiden = True
-    player.reset_hand()
-    dealer.reset_hand()
-    deck = Deck()
-    deck.shuffle()
-    print(f'=====  GAME SCORE [ {player.name}: {player.games_won} | {dealer.name}: {dealer.games_won} ]  =====')
-    game_state = GameState.DEALING
+    pass
 
 def update_resolution(now):
     global has_started_dealing, game_state, deck, resolution_lines_set
@@ -311,7 +307,29 @@ def update_resolution(now):
     textbox.animate(now)
 
     if resolution_lines_set:
-        game_reset()
+        pass
+
+def update_reset(now):
+    global game_state, deck, intro_lines_set, dealing_lines_set, blackjack_stage, player_turn_lines_set, dealer_turn_lines_set, resolution_lines_set, player_stands_lines_ready, player_stands_lines_set, player_bust_lines_set, player_bust_lines_ready, dealer_second_card_hiden, has_started_dealing, dealer_turn_status
+    intro_lines_set = False
+    dealing_lines_set = False
+    blackjack_stage = 'not_started'
+    player_turn_lines_set = False
+    player_stands_lines_ready = False
+    player_stands_lines_set = False
+    player_bust_lines_ready = False
+    player_bust_lines_set = False
+    dealer_turn_lines_set = False
+    resolution_lines_set = False
+    dealer_second_card_hiden = True
+    dealer_turn_status = 'not_started'
+    has_started_dealing = False
+    player.reset_hand()
+    dealer.reset_hand()
+    deck = Deck()
+    deck.shuffle()
+    print(f'=====  GAME SCORE [ {player.name}: {player.games_won} | {dealer.name}: {dealer.games_won} ]  =====')
+    game_state = GameState.DEALING
     
 
 
@@ -361,7 +379,7 @@ def draw_screen():
 
     textbox.draw(screen)
 
-    if game_state in [GameState.DEALING, GameState.PLAYER_TURN, GameState.DEALER_TURN, GameState. RESOLUTION]:
+    if game_state is not GameState.INTRO:
         draw_playing()
 
     pygame.display.flip()
@@ -391,6 +409,8 @@ while running:
             handle_dealer_turn_input(event)
         elif game_state == GameState.RESOLUTION:
             handle_resolution_input(event)
+        elif game_state == GameState.RESET:
+            handle_reset_input(event)
 
     # Update state
     if game_state == GameState.INTRO:
@@ -403,6 +423,8 @@ while running:
         update_dealer_turn(now)
     elif game_state == GameState.RESOLUTION:
         update_resolution(now)
+    elif game_state == GameState.RESET:
+        update_reset(now)
 
     # Render frame
     draw_screen()

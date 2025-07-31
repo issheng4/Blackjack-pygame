@@ -4,13 +4,6 @@ import pygame
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
-# Game states
-INTRO = 'intro'
-DEALING = 'dealing'
-PLAYER_TURN = 'player_turn'
-DEALER_TURN = 'dealer_turn'
-RESOLUTION = 'resolution'
-
 # Font settings
 FONT_NAME = 'lucidaconsole'
 FONT_SIZE = 30
