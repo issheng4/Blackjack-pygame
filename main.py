@@ -12,7 +12,7 @@ from constants import (
     CARD_BACK,
 )
 from dialogue import INTRO_DIALOGUE_LINES, player_turn_lines, HIT_OR_STAND_INPUT
-from game_objects import Card, Deck, Hand, Person, TextBoxController, GameState
+from game_objects import Card, Deck, Hand, Person, TextBoxController, GameFlags, GameState, GameManager
 
 # Pygame setup
 pygame.init()
@@ -21,14 +21,11 @@ pygame.display.set_caption("Blackjack")
 font = pygame.font.SysFont(FONT_NAME, FONT_SIZE)
 clock = pygame.time.Clock()
 
-# Game objects
+# Game data
+game = GameManager()
 player = Person('player', 'Player')
 dealer = Person('dealer', 'The Dealer')
-deck = Deck()
-deck.shuffle()
-
-# Game state
-game_state = GameState.INTRO
+flags = game.flags
 running = True
 dt = 0
 now = 0
@@ -37,33 +34,22 @@ now = 0
 text_rect = pygame.Rect(TEXTBOX_X, TEXTBOX_Y, TEXTBOX_WIDTH, TEXTBOX_HEIGHT)
 textbox = TextBoxController(font, text_rect)
 
-# Flags
-has_started_dealing = False
-intro_lines_set = False
-dealing_lines_set = False
-blackjack_stage = 'not_started'
-player_turn_lines_set = False
-player_stands_lines_ready = False
-player_stands_lines_set = False
-player_bust_lines_ready = False
-player_bust_lines_set = False
-dealer_turn_lines_set = False
-dealer_turn_status = 'not_started'
-resolution_lines_set = False
-dealer_second_card_hiden = True
-
 # Deal timing events
 DEAL_PLAYER_CARD_1 = pygame.USEREVENT + 1
 DEAL_DEALER_CARD_1 = pygame.USEREVENT + 2
 DEAL_PLAYER_CARD_2 = pygame.USEREVENT + 3
 DEAL_DEALER_CARD_2 = pygame.USEREVENT + 4
 DEAL_DONE = pygame.USEREVENT + 5
-
 DEALER_TURN_CARD_REVEAL = pygame.USEREVENT + 6
 DEALER_HIT = pygame.USEREVENT + 7
 DEALER_TURN_OVER = pygame.USEREVENT + 8
 
-manual_hand_input_for_testing = True
+# Hand for testing
+MANUAL_HAND_FOR_TESTING = False
+TEST_PLAYER_CARD_1 = Card('A', 'spades')
+TEST_PLAYER_CARD_2 = Card('K', 'spades')
+TEST_DEALER_CARD_1 = Card('Q', 'spades')
+TEST_DEALER_CARD_2 = Card('10', 'spades')
 
 
 
@@ -72,134 +58,130 @@ manual_hand_input_for_testing = True
 # ---------------------------------------
 
 def handle_intro_input(event):
-    global game_state    
     result = textbox.handle_dialogue_input(event)
     if result == 'done' or result == 'skip':
-        game_state = GameState.DEALING
+        game.state = GameState.RESET
 
+def handle_reset_input(event):
+    pass
 
 
 def handle_dealing_input(event):
-    global has_started_dealing, game_state, manual_hand_input_for_testing
-    if has_started_dealing == False:
+    if not flags.has_started_dealing:
         pygame.time.set_timer(DEAL_PLAYER_CARD_1, 300, loops=1)
         pygame.time.set_timer(DEAL_DEALER_CARD_1, 600, loops=1)
         pygame.time.set_timer(DEAL_PLAYER_CARD_2, 900, loops=1)
         pygame.time.set_timer(DEAL_DEALER_CARD_2, 1200, loops=1)
-        has_started_dealing = True
+        flags.has_started_dealing = True
 
-    if manual_hand_input_for_testing == False:
+    if MANUAL_HAND_FOR_TESTING:
         if event.type == DEAL_PLAYER_CARD_1:
-            player.hand.add_card(Card('A', 'spades'))
+            player.hand.add_card(TEST_PLAYER_CARD_1)
         elif event.type == DEAL_DEALER_CARD_1:
-            dealer.hand.add_card(Card('Q', 'spades'))
+            dealer.hand.add_card(TEST_DEALER_CARD_1)
         elif event.type == DEAL_PLAYER_CARD_2:
-            player.hand.add_card(Card('K', 'spades'))
+            player.hand.add_card(TEST_PLAYER_CARD_2)
         elif event.type == DEAL_DEALER_CARD_2:
-            dealer.hand.add_card(Card('10', 'spades'))
+            dealer.hand.add_card(TEST_DEALER_CARD_2)
             pygame.time.set_timer(DEAL_DONE, 20, loops=1)
 
     else:
         if event.type == DEAL_PLAYER_CARD_1:
-            player.receive_card(deck)
+            player.receive_card(game.deck)
         elif event.type == DEAL_DEALER_CARD_1:
-            dealer.receive_card(deck)
+            dealer.receive_card(game.deck)
         elif event.type == DEAL_PLAYER_CARD_2:
-            player.receive_card(deck)
+            player.receive_card(game.deck)
         elif event.type == DEAL_DEALER_CARD_2:
-            dealer.receive_card(deck)
+            dealer.receive_card(game.deck)
             pygame.time.set_timer(DEAL_DONE, 20, loops=1)
 
     if event.type == DEAL_DONE:
         print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
         print(f"//// {dealer.name}'s hand: {dealer.hand}  TOTAL: {dealer.calculate_hand_total()}  ////")
-        game_state = GameState.PLAYER_TURN
+        game.state = GameState.PLAYER_TURN
 
 
 
 def handle_player_turn_input(event):
-    global game_state, player_stands_lines_ready, player_stands_lines_set
-    global player_turn_lines_set, player_bust_lines_set, blackjack_stage
-
     if event.type != pygame.KEYDOWN:
         return
 
     # If bust text is active
-    if player_bust_lines_set:
+    if flags.player_bust_lines_set:
         result = textbox.handle_dialogue_input(event)
         if result == 'done':
-            game_state = GameState.RESET
+            game.state = GameState.RESET
         return
 
     # Blackjack flow
-    if blackjack_stage != 'not_started':
+    if flags.blackjack_stage:
         result = textbox.handle_dialogue_input(event)
         if result == 'done':
-            if blackjack_stage == 'reveal':
-                blackjack_stage = 'resolve'
-            elif blackjack_stage == 'done':
-                game_state = GameState.RESET
+            if flags.blackjack_stage == 'reveal':
+                flags.blackjack_stage = 'resolve'
+            elif flags.blackjack_stage == 'done':
+                game.state = GameState.RESET
         return
 
     # If stand dialogue is active
-    if player_stands_lines_set:
+    if flags.player_stands_lines_set:
         result = textbox.handle_dialogue_input(event)
         if result == 'done':
-            game_state = GameState.DEALER_TURN
+            game.state = GameState.DEALER_TURN
         return
 
     # Hit or Stand phase
-    if not player_stands_lines_ready:
+    if not flags.player_stands_lines_ready:
         # Only allow progressing if the textbox is not in the hit/stand prompt
         if event.key == pygame.K_h and textbox.line_fully_displayed:
-            player.receive_card(deck)
+            player.receive_card(game.deck)
             print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.hand.total}  ////")
             textbox.handle_dialogue_input(event)
 
         elif event.key == pygame.K_s:
-            player_stands_lines_ready = True
+            flags.player_stands_lines_ready = True
 
+        # Restart for testing
         elif event.key == pygame.K_r:
-            game_state = GameState.RESET
+            game.state = GameState.RESET
 
 
 
 
 
 def handle_dealer_turn_input(event):
-    global dealer_turn_status, dealer_second_card_hiden, game_state
-    if dealer_turn_status == 'not_started':
-        dealer_turn_status = 'reveal'
+    if not flags.dealer_turn_status:
+        flags.dealer_turn_status = 'reveal'
         pygame.time.set_timer(DEALER_TURN_CARD_REVEAL, 300, loops=1)
 
     elif event.type == DEALER_TURN_CARD_REVEAL:
-            dealer_second_card_hiden = False
+            flags.dealer_second_card_visible = True
             print('Second card revealed')
-            dealer_turn_status = 'dealing_wait'
+            flags.dealer_turn_status = 'dealing_wait'
             pygame.time.set_timer(DEALER_HIT, 600, loops=1)
     
-    elif event.type == DEALER_HIT and dealer_turn_status in ('dealing', 'dealing_wait'):
+    elif event.type == DEALER_HIT and flags.dealer_turn_status in ('dealing', 'dealing_wait'):
         if dealer.hand.total < 17:
-            dealer.receive_card(deck)
+            dealer.receive_card(game.deck)
             print('Card dealt, total:', dealer.hand.total)
-            dealer_turn_status = 'dealing'
+            flags.dealer_turn_status = 'dealing'
             pygame.time.set_timer(DEALER_HIT, 600, loops=1)
         else:
             pygame.time.set_timer(DEALER_HIT, 0)
             print('Dealer finished hitting')
-            dealer_turn_status = 'done'
+            flags.dealer_turn_status = 'done'
             pygame.time.set_timer(DEALER_TURN_OVER, 20, loops=1)
     
     elif event.type == DEALER_TURN_OVER:
-        game_state = GameState.RESOLUTION
+        game.state = GameState.RESOLUTION
 
 
 
 def handle_resolution_input(event):    
     pass
 
-def handle_reset_input(event):
-    pass
+
 
 
 
@@ -210,52 +192,56 @@ def handle_reset_input(event):
 # ---------------------------------------
 
 def update_intro(now):
-    global intro_lines_set
-    if not intro_lines_set:
+    if not flags.intro_lines_set:
         textbox.set_lines(INTRO_DIALOGUE_LINES)
-        intro_lines_set = True
+        flags.intro_lines_set = True
     textbox.animate(now)
+
+def update_reset(now):
+    flags.reset()
+    player.reset_hand()
+    dealer.reset_hand()
+    game.deck = Deck()
+    game.deck.shuffle()
+    print(f'=====  GAME SCORE [ {player.name}: {player.games_won} | {dealer.name}: {dealer.games_won} ]  =====')
+    game.state = GameState.DEALING
 
 
 def update_dealing(now):
-    global dealing_lines_set
-
-    if not dealing_lines_set:
+    if not flags.dealing_lines_set:
         textbox.set_lines(["And I deal..."],show_arrow=False)
-        dealing_lines_set = True
+        flags.dealing_lines_set = True
     textbox.animate(now)
 
     
 def update_player_turn(now):
-    global blackjack_stage, game_state, dealer_second_card_hiden, player_bust_lines_set, player_turn_lines_set, player_stands_lines_set
-
     if len(player.hand.cards) == 2 and player.hand.total == 21:
 
-        if blackjack_stage == 'not_started':
-            blackjack_stage = 'start'
+        if not flags.blackjack_stage:
+            flags.blackjack_stage = 'start'
 
-        if blackjack_stage == 'start':
+        if flags.blackjack_stage == 'start':
             # Dealer cannot have blackjack
             if dealer.hand.cards[0].value not in ['10', 'J', 'Q', 'K', 'A']:
                 textbox.set_lines(["Wow, you got a blackjack!", "Let's go again."])
-                blackjack_stage = 'done'
+                flags.blackjack_stage = 'done'
                 player.games_won += 1
 
             else:
                 # Dealer might have blackjack — wait before revealing
                 textbox.set_lines(["Wow, you got a blackjack!", "But wait a moment.", "Let's see if I've got one too...", " "])
-                blackjack_stage = 'reveal'
+                flags.blackjack_stage = 'reveal'
 
-        elif blackjack_stage == 'reveal':
+        elif flags.blackjack_stage == 'reveal':
             # Wait for user to finish reading line 1
-            if textbox.line_fully_displayed and textbox.current_line_index == 2:
-                dealer_second_card_hiden = False
+            if textbox.line_fully_displayed and textbox.current_line_index == 3:
+                flags.dealer_second_card_visible = True
                 if len(dealer.hand.cards) == 2 and dealer.hand.total == 21:
                     textbox.set_lines(["I have a blackjack too!", "Looks like it's a draw.", "Let's go again."])
                 else:
                     textbox.set_lines(["Ah, I don't have a blackjack.", "You've won this time!", "Let's go again."])
                     player.games_won += 1
-                blackjack_stage = 'done'
+                flags.blackjack_stage = 'done'
 
         textbox.animate(now)
         return
@@ -263,20 +249,20 @@ def update_player_turn(now):
     
     if player.hand.total > 21:
         # Player has bust
-        if not player_bust_lines_set:
+        if not flags.player_bust_lines_set:
             textbox.set_lines(["Ah! Looks like you've bust.", "Let's go again."])
-            player_bust_lines_set = True
+            flags.player_bust_lines_set = True
             dealer.games_won += 1
 
-    elif not player_turn_lines_set:
+    elif not flags.player_turn_lines_set:
         # Standard player turn
         textbox.set_lines(HIT_OR_STAND_INPUT, show_arrow=False)
-        player_turn_lines_set = True
+        flags.player_turn_lines_set = True
 
-    elif player_stands_lines_ready and not player_stands_lines_set:
+    elif flags.player_stands_lines_ready and not flags.player_stands_lines_set:
         # Stand dialogue
         textbox.set_lines(["You stand, alright.", "Now it's my turn."])
-        player_stands_lines_set = True
+        flags.player_stands_lines_set = True
 
     textbox.animate(now)
 
@@ -286,11 +272,9 @@ def update_player_turn(now):
 
 def update_dealer_turn(now):
     # dealer turn ends when dealer hand is 17
-    global dealer_turn_lines_set
-
-    if not dealer_turn_lines_set:
+    if not flags.dealer_turn_lines_set:
         textbox.set_lines(["..."],show_arrow=False)
-        dealer_turn_lines_set = True
+        flags.dealer_turn_lines_set = True
     textbox.animate(now)
     
 
@@ -298,38 +282,27 @@ def game_reset():
     pass
 
 def update_resolution(now):
-    global has_started_dealing, game_state, deck, resolution_lines_set
-    has_started_dealing = False
+    flags.has_started_dealing = False
 
-    if not resolution_lines_set:
+    # to do - add blackjack check for dealer (if len is 2 and total is 21)
+    if len(dealer.hand.cards) == 2 and dealer.hand.total == 21:
+        pass # 'I got a blackjack'
+
+    # to do - add bust check for dealer (if total > 21)
+    if dealer.hand.total > 21:
+        pass # 'I have bust'
+
+    # to do - usual check of who has higher score and wins
+
+    if not flags.resolution_lines_set:
         textbox.set_lines(["..."],show_arrow=False)
-        resolution_lines_set = True
+        flags.resolution_lines_set = True
     textbox.animate(now)
 
-    if resolution_lines_set:
-        pass
+    if flags.resolution_lines_set:
+        game.state = GameState.RESET
 
-def update_reset(now):
-    global game_state, deck, intro_lines_set, dealing_lines_set, blackjack_stage, player_turn_lines_set, dealer_turn_lines_set, resolution_lines_set, player_stands_lines_ready, player_stands_lines_set, player_bust_lines_set, player_bust_lines_ready, dealer_second_card_hiden, has_started_dealing, dealer_turn_status
-    intro_lines_set = False
-    dealing_lines_set = False
-    blackjack_stage = 'not_started'
-    player_turn_lines_set = False
-    player_stands_lines_ready = False
-    player_stands_lines_set = False
-    player_bust_lines_ready = False
-    player_bust_lines_set = False
-    dealer_turn_lines_set = False
-    resolution_lines_set = False
-    dealer_second_card_hiden = True
-    dealer_turn_status = 'not_started'
-    has_started_dealing = False
-    player.reset_hand()
-    dealer.reset_hand()
-    deck = Deck()
-    deck.shuffle()
-    print(f'=====  GAME SCORE [ {player.name}: {player.games_won} | {dealer.name}: {dealer.games_won} ]  =====')
-    game_state = GameState.DEALING
+
     
 
 
@@ -352,7 +325,6 @@ def draw_scoreboard():
 
 
 def draw_playing():
-    global dealer_second_card_hiden
     player_x, player_y = FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y
     dealer_x, dealer_y = FIRST_DEALER_CARD_X, FIRST_DEALER_CARD_Y
 
@@ -362,7 +334,7 @@ def draw_playing():
         player_y -= PLAYER_CARD_DISPLACEMENT_Y
 
     for i, card in enumerate(dealer.hand.cards):
-        if i == 1 and dealer_second_card_hiden:
+        if i == 1 and not flags.dealer_second_card_visible:
             screen.blit(CARD_BACK, (dealer_x, dealer_y))
         else:
             card.render(screen, dealer_x, dealer_y)
@@ -372,14 +344,14 @@ def draw_playing():
 
 
 def draw_screen():
-    if game_state == GameState.INTRO and textbox.current_line_index < 11:
+    if game.state == GameState.INTRO and textbox.current_line_index < 11:
         screen.fill(BG_DARK_GREY)
     else:
         screen.fill(TABLE_GREEN)
 
     textbox.draw(screen)
 
-    if game_state is not GameState.INTRO:
+    if game.state is not GameState.INTRO:
         draw_playing()
 
     pygame.display.flip()
@@ -399,32 +371,34 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        if game_state == GameState.INTRO:
+        if game.state == GameState.INTRO:
             handle_intro_input(event)
-        elif game_state == GameState.DEALING:
-            handle_dealing_input(event)
-        elif game_state == GameState.PLAYER_TURN:
-            handle_player_turn_input(event)
-        elif game_state == GameState.DEALER_TURN:
-            handle_dealer_turn_input(event)
-        elif game_state == GameState.RESOLUTION:
-            handle_resolution_input(event)
-        elif game_state == GameState.RESET:
+        elif game.state == GameState.RESET:
             handle_reset_input(event)
+        elif game.state == GameState.DEALING:
+            handle_dealing_input(event)
+        elif game.state == GameState.PLAYER_TURN:
+            handle_player_turn_input(event)
+        elif game.state == GameState.DEALER_TURN:
+            handle_dealer_turn_input(event)
+        elif game.state == GameState.RESOLUTION:
+            handle_resolution_input(event)
+
 
     # Update state
-    if game_state == GameState.INTRO:
+    if game.state == GameState.INTRO:
         update_intro(now)
-    elif game_state == GameState.DEALING:
-        update_dealing(now)
-    elif game_state == GameState.PLAYER_TURN:
-        update_player_turn(now)
-    elif game_state == GameState.DEALER_TURN:
-        update_dealer_turn(now)
-    elif game_state == GameState.RESOLUTION:
-        update_resolution(now)
-    elif game_state == GameState.RESET:
+    elif game.state == GameState.RESET:
         update_reset(now)
+    elif game.state == GameState.DEALING:
+        update_dealing(now)
+    elif game.state == GameState.PLAYER_TURN:
+        update_player_turn(now)
+    elif game.state == GameState.DEALER_TURN:
+        update_dealer_turn(now)
+    elif game.state == GameState.RESOLUTION:
+        update_resolution(now)
+
 
     # Render frame
     draw_screen()

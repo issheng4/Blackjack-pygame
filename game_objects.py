@@ -239,10 +239,38 @@ class TextBoxController:
             ])
 
 
+class GameFlags:
+    def __init__(self):
+        self.has_started_dealing = False
+        self.dealer_second_card_visible = False
+        self.blackjack_stage = None
+        self.dealer_turn_status = None
+
+        self.intro_lines_set = False
+        self.dealing_lines_set = False
+        self.player_turn_lines_set = False
+        self.player_stands_lines_ready = False
+        self.player_stands_lines_set = False
+        self.player_bust_lines_ready = False
+        self.player_bust_lines_set = False
+        self.dealer_turn_lines_set = False
+        self.resolution_lines_set = False
+
+    def reset(self):
+        for attr in vars(self):
+            setattr(self, attr, False if isinstance(getattr(self, attr), bool) else None)
+        
+
 class GameState(Enum):
     INTRO = 0
-    DEALING = 1
-    PLAYER_TURN = 2
-    DEALER_TURN = 3
-    RESOLUTION = 4
-    RESET = 5
+    RESET = 1
+    DEALING = 2
+    PLAYER_TURN = 3
+    DEALER_TURN = 4
+    RESOLUTION = 5
+
+class GameManager():
+    def __init__(self):
+        self.state = GameState.INTRO
+        self.flags = GameFlags()
+        self.deck = Deck()
