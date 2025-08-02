@@ -11,7 +11,7 @@ from constants import (
     SCOREBOARD_TEXT_X, SCOREBOARD_TITLE_Y, SCOREBOARD_PLAYER_Y, SCOREBOARD_DEALER_Y,
     CARD_BACK,
 )
-from dialogue import INTRO_DIALOGUE_LINES, player_turn_lines, HIT_OR_STAND_INPUT
+from dialogue import INTRO_DIALOGUE_LINES, HIT_OR_STAND_INPUT
 from game_objects import Card, Deck, Hand, Person, TextBoxController, GameFlags, GameState, GameManager
 
 # Pygame setup
@@ -46,10 +46,10 @@ DEALER_TURN_OVER = pygame.USEREVENT + 8
 
 # Hand for testing
 MANUAL_HAND_FOR_TESTING = False
-TEST_PLAYER_CARD_1 = Card('A', 'spades')
+TEST_PLAYER_CARD_1 = Card('4', 'spades')
 TEST_PLAYER_CARD_2 = Card('K', 'spades')
 TEST_DEALER_CARD_1 = Card('Q', 'spades')
-TEST_DEALER_CARD_2 = Card('10', 'spades')
+TEST_DEALER_CARD_2 = Card('A', 'spades')
 
 
 
@@ -115,12 +115,12 @@ def handle_player_turn_input(event):
         return
 
     # Blackjack flow
-    if flags.blackjack_stage:
+    if flags.player_blackjack_stage:
         result = textbox.handle_dialogue_input(event)
         if result == 'done':
-            if flags.blackjack_stage == 'reveal':
-                flags.blackjack_stage = 'resolve'
-            elif flags.blackjack_stage == 'done':
+            if flags.player_blackjack_stage == 'reveal':
+                flags.player_blackjack_stage = 'resolve'
+            elif flags.player_blackjack_stage == 'done':
                 game.state = GameState.RESET
         return
 
@@ -159,14 +159,14 @@ def handle_dealer_turn_input(event):
             flags.dealer_second_card_visible = True
             print('Second card revealed')
             flags.dealer_turn_status = 'dealing_wait'
-            pygame.time.set_timer(DEALER_HIT, 600, loops=1)
+            pygame.time.set_timer(DEALER_HIT, 800, loops=1)
     
     elif event.type == DEALER_HIT and flags.dealer_turn_status in ('dealing', 'dealing_wait'):
         if dealer.hand.total < 17:
             dealer.receive_card(game.deck)
             print('Card dealt, total:', dealer.hand.total)
             flags.dealer_turn_status = 'dealing'
-            pygame.time.set_timer(DEALER_HIT, 600, loops=1)
+            pygame.time.set_timer(DEALER_HIT, 800, loops=1)
         else:
             pygame.time.set_timer(DEALER_HIT, 0)
             print('Dealer finished hitting')
@@ -179,7 +179,15 @@ def handle_dealer_turn_input(event):
 
 
 def handle_resolution_input(event):    
-    pass
+    result = textbox.handle_dialogue_input(event)
+    if result == 'done':
+        if not flags.review_hands_lines_ready:
+            game.state = GameState.RESET
+        elif not flags.endgame_lines_ready:
+            flags.endgame_lines_ready = True
+        else:
+            game.state = GameState.RESET
+
 
 
 
@@ -217,22 +225,22 @@ def update_dealing(now):
 def update_player_turn(now):
     if len(player.hand.cards) == 2 and player.hand.total == 21:
 
-        if not flags.blackjack_stage:
-            flags.blackjack_stage = 'start'
+        if not flags.player_blackjack_stage:
+            flags.player_blackjack_stage = 'start'
 
-        if flags.blackjack_stage == 'start':
+        if flags.player_blackjack_stage == 'start':
             # Dealer cannot have blackjack
-            if dealer.hand.cards[0].value not in ['10', 'J', 'Q', 'K', 'A']:
+            if dealer.hand.cards[0].value not in ('10', 'J', 'Q', 'K', 'A'):
                 textbox.set_lines(["Wow, you got a blackjack!", "Let's go again."])
-                flags.blackjack_stage = 'done'
+                flags.player_blackjack_stage = 'done'
                 player.games_won += 1
 
             else:
                 # Dealer might have blackjack — wait before revealing
                 textbox.set_lines(["Wow, you got a blackjack!", "But wait a moment.", "Let's see if I've got one too...", " "])
-                flags.blackjack_stage = 'reveal'
+                flags.player_blackjack_stage = 'reveal'
 
-        elif flags.blackjack_stage == 'reveal':
+        elif flags.player_blackjack_stage == 'reveal':
             # Wait for user to finish reading line 1
             if textbox.line_fully_displayed and textbox.current_line_index == 3:
                 flags.dealer_second_card_visible = True
@@ -241,7 +249,7 @@ def update_player_turn(now):
                 else:
                     textbox.set_lines(["Ah, I don't have a blackjack.", "You've won this time!", "Let's go again."])
                     player.games_won += 1
-                flags.blackjack_stage = 'done'
+                flags.player_blackjack_stage = 'done'
 
         textbox.animate(now)
         return
@@ -273,7 +281,7 @@ def update_player_turn(now):
 def update_dealer_turn(now):
     # dealer turn ends when dealer hand is 17
     if not flags.dealer_turn_lines_set:
-        textbox.set_lines(["..."],show_arrow=False)
+        textbox.set_lines(["I hit until I reach 17..."],show_arrow=False)
         flags.dealer_turn_lines_set = True
     textbox.animate(now)
     
@@ -282,25 +290,47 @@ def game_reset():
     pass
 
 def update_resolution(now):
-    flags.has_started_dealing = False
-
-    # to do - add blackjack check for dealer (if len is 2 and total is 21)
     if len(dealer.hand.cards) == 2 and dealer.hand.total == 21:
-        pass # 'I got a blackjack'
-
+        if not flags.dealer_blackjack_lines_set:
+            textbox.set_lines(["Oh, I've got a blackjack!", "That's a game won for The Dealer.", "Let's go again!"])
+            flags.dealer_blackjack_lines_set = True
+            dealer.games_won += 1
+         
     # to do - add bust check for dealer (if total > 21)
-    if dealer.hand.total > 21:
-        pass # 'I have bust'
+    elif dealer.hand.total > 21:
+        if not flags.dealer_bust_lines_set:
+            textbox.set_lines(["Ah! Looks like I have bust.", "So you win this time.", "Another game!"])
+            flags.dealer_bust_lines_set = True
+            player.games_won += 1
 
     # to do - usual check of who has higher score and wins
 
-    if not flags.resolution_lines_set:
-        textbox.set_lines(["..."],show_arrow=False)
-        flags.resolution_lines_set = True
-    textbox.animate(now)
+    else:
+        flags.review_hands_lines_ready = True
 
-    if flags.resolution_lines_set:
-        game.state = GameState.RESET
+    if flags.review_hands_lines_ready and not flags.review_hands_lines_set:
+        textbox.set_lines(["And now we review our hands to see who has won this time.", f"You have {player.hand.total} and I have {dealer.hand.total}."])
+        flags.review_hands_lines_set = True
+
+    elif flags.endgame_lines_ready:
+        if player.hand.total > dealer.hand.total:
+            if not flags.player_wins_lines_set:
+                textbox.set_lines(["You win this time!", "Let's go again."])
+                flags.player_wins_lines_set = True
+                player.games_won += 1
+
+        elif player.hand.total < dealer.hand.total:
+            if not flags.dealer_wins_lines_set:
+                textbox.set_lines(["I win this time!", "Let's go again."])
+                flags.dealer_wins_lines_set = True
+                dealer.games_won += 1
+        
+        else:
+            if not flags.game_draw_lines_set:
+                textbox.set_lines(["So it's a draw this time round.", "Let's go again!"])
+                flags.game_draw_lines_set = True
+    
+    textbox.animate(now)
 
 
     

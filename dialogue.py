@@ -32,11 +32,6 @@ INTRO_DIALOGUE_LINES = [
 ]
 
 
-player_turn_lines = [
-    "You have a hand of {score}. Would you like to hit [H] or stand [S]?",
-    "Alright, then. My turn."
-]
-
 HIT_OR_STAND_INPUT = [
     "Your turn. Press [H] to hit or [S] to stand.",
     "Good choice. Press [H] to hit or [S] to stand.",
