@@ -10,6 +10,7 @@ from constants import (
     FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y, PLAYER_CARD_DISPLACEMENT_X, PLAYER_CARD_DISPLACEMENT_Y, FIRST_DEALER_CARD_X, FIRST_DEALER_CARD_Y, DEALER_CARD_DISPLACEMENT_X,
     SCOREBOARD_TEXT_X, SCOREBOARD_TITLE_Y, SCOREBOARD_PLAYER_Y, SCOREBOARD_DEALER_Y,
     CARD_BACK,
+    MUSIC_VOLUME, INTRO_MUSIC, MAIN_MUSIC
 )
 from dialogue import INTRO_DIALOGUE_LINES, HIT_OR_STAND_INPUT
 from game_objects import Card, Deck, Hand, Person, TextBoxController, GameFlags, GameState, GameManager
@@ -20,11 +21,12 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Blackjack")
 font = pygame.font.SysFont(FONT_NAME, FONT_SIZE)
 clock = pygame.time.Clock()
+pygame.mixer.init()
 
 # Game data
 game = GameManager()
-player = Person('player', 'Player')
-dealer = Person('dealer', 'The Dealer')
+player = Person('player')
+dealer = Person('dealer')
 flags = game.flags
 running = True
 dt = 0
@@ -68,10 +70,10 @@ def handle_reset_input(event):
 
 def handle_dealing_input(event):
     if not flags.has_started_dealing:
-        pygame.time.set_timer(DEAL_PLAYER_CARD_1, 300, loops=1)
-        pygame.time.set_timer(DEAL_DEALER_CARD_1, 600, loops=1)
-        pygame.time.set_timer(DEAL_PLAYER_CARD_2, 900, loops=1)
-        pygame.time.set_timer(DEAL_DEALER_CARD_2, 1200, loops=1)
+        pygame.time.set_timer(DEAL_PLAYER_CARD_1, 600, loops=1)
+        pygame.time.set_timer(DEAL_DEALER_CARD_1, 900, loops=1)
+        pygame.time.set_timer(DEAL_PLAYER_CARD_2, 1200, loops=1)
+        pygame.time.set_timer(DEAL_DEALER_CARD_2, 1500, loops=1)
         flags.has_started_dealing = True
 
     if MANUAL_HAND_FOR_TESTING:
@@ -97,8 +99,8 @@ def handle_dealing_input(event):
             pygame.time.set_timer(DEAL_DONE, 20, loops=1)
 
     if event.type == DEAL_DONE:
-        print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
-        print(f"//// {dealer.name}'s hand: {dealer.hand}  TOTAL: {dealer.calculate_hand_total()}  ////")
+        print(f"//// Player's hand: {player.hand}  TOTAL: {player.calculate_hand_total()}  ////")
+        print(f"//// Dealer's hand: {dealer.hand}  TOTAL: {dealer.calculate_hand_total()}  ////")
         game.state = GameState.PLAYER_TURN
 
 
@@ -136,7 +138,7 @@ def handle_player_turn_input(event):
         # Only allow progressing if the textbox is not in the hit/stand prompt
         if event.key == pygame.K_h and textbox.line_fully_displayed:
             player.receive_card(game.deck)
-            print(f"//// {player.name}'s hand: {player.hand}  TOTAL: {player.hand.total}  ////")
+            print(f"//// Player's hand: {player.hand}  TOTAL: {player.hand.total}  ////")
             textbox.handle_dialogue_input(event)
 
         elif event.key == pygame.K_s:
@@ -157,6 +159,7 @@ def handle_dealer_turn_input(event):
 
     elif event.type == DEALER_TURN_CARD_REVEAL:
             flags.dealer_second_card_visible = True
+            dealer.hand.make_hidden_card_reveal_sound()
             print('Second card revealed')
             flags.dealer_turn_status = 'dealing_wait'
             pygame.time.set_timer(DEALER_HIT, 800, loops=1)
@@ -211,7 +214,7 @@ def update_reset(now):
     dealer.reset_hand()
     game.deck = Deck()
     game.deck.shuffle()
-    print(f'=====  GAME SCORE [ {player.name}: {player.games_won} | {dealer.name}: {dealer.games_won} ]  =====')
+    print(f'=====  GAME SCORE [ Player: {player.games_won} | Dealer: {dealer.games_won} ]  =====')
     game.state = GameState.DEALING
 
 
@@ -233,7 +236,7 @@ def update_player_turn(now):
             if dealer.hand.cards[0].value not in ('10', 'J', 'Q', 'K', 'A'):
                 textbox.set_lines(["Wow, you got a blackjack!", "Let's go again."])
                 flags.player_blackjack_stage = 'done'
-                player.games_won += 1
+                player.win_game()
 
             else:
                 # Dealer might have blackjack — wait before revealing
@@ -248,7 +251,7 @@ def update_player_turn(now):
                     textbox.set_lines(["I have a blackjack too!", "Looks like it's a draw.", "Let's go again."])
                 else:
                     textbox.set_lines(["Ah, I don't have a blackjack.", "You've won this time!", "Let's go again."])
-                    player.games_won += 1
+                    player.win_game()
                 flags.player_blackjack_stage = 'done'
 
         textbox.animate(now)
@@ -260,7 +263,7 @@ def update_player_turn(now):
         if not flags.player_bust_lines_set:
             textbox.set_lines(["Ah! Looks like you've bust.", "Let's go again."])
             flags.player_bust_lines_set = True
-            dealer.games_won += 1
+            dealer.win_game()
 
     elif not flags.player_turn_lines_set:
         # Standard player turn
@@ -279,31 +282,24 @@ def update_player_turn(now):
 
 
 def update_dealer_turn(now):
-    # dealer turn ends when dealer hand is 17
     if not flags.dealer_turn_lines_set:
         textbox.set_lines(["I hit until I reach 17..."],show_arrow=False)
         flags.dealer_turn_lines_set = True
     textbox.animate(now)
-    
 
-def game_reset():
-    pass
 
 def update_resolution(now):
     if len(dealer.hand.cards) == 2 and dealer.hand.total == 21:
         if not flags.dealer_blackjack_lines_set:
             textbox.set_lines(["Oh, I've got a blackjack!", "That's a game won for The Dealer.", "Let's go again!"])
             flags.dealer_blackjack_lines_set = True
-            dealer.games_won += 1
+            dealer.win_game()
          
-    # to do - add bust check for dealer (if total > 21)
     elif dealer.hand.total > 21:
         if not flags.dealer_bust_lines_set:
             textbox.set_lines(["Ah! Looks like I have bust.", "So you win this time.", "Another game!"])
             flags.dealer_bust_lines_set = True
-            player.games_won += 1
-
-    # to do - usual check of who has higher score and wins
+            player.win_game()
 
     else:
         flags.review_hands_lines_ready = True
@@ -317,13 +313,13 @@ def update_resolution(now):
             if not flags.player_wins_lines_set:
                 textbox.set_lines(["You win this time!", "Let's go again."])
                 flags.player_wins_lines_set = True
-                player.games_won += 1
+                player.win_game()
 
         elif player.hand.total < dealer.hand.total:
             if not flags.dealer_wins_lines_set:
                 textbox.set_lines(["I win this time!", "Let's go again."])
                 flags.dealer_wins_lines_set = True
-                dealer.games_won += 1
+                dealer.win_game()
         
         else:
             if not flags.game_draw_lines_set:
@@ -387,6 +383,19 @@ def draw_screen():
     pygame.display.flip()
 
 
+def play_music():
+    if game.state == GameState.INTRO:
+        desired_music = INTRO_MUSIC
+    else:
+        desired_music = MAIN_MUSIC
+    
+    if game.current_music != desired_music:
+        pygame.mixer.music.load(desired_music)
+        pygame.mixer.music.set_volume(MUSIC_VOLUME)
+        pygame.mixer.music.play(-1)
+        game.current_music = desired_music
+
+
 
 
 # -------------------------------------
@@ -428,6 +437,9 @@ while running:
         update_dealer_turn(now)
     elif game.state == GameState.RESOLUTION:
         update_resolution(now)
+
+    # Music control
+    play_music()
 
 
     # Render frame

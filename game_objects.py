@@ -10,6 +10,7 @@ from constants import (
     CARD_WIDTH, CARD_HEIGHT,
     FIRST_PLAYER_CARD_X, FIRST_PLAYER_CARD_Y, PLAYER_CARD_DISPLACEMENT_X, PLAYER_CARD_DISPLACEMENT_Y, FIRST_DEALER_CARD_X, FIRST_DEALER_CARD_Y, DEALER_CARD_DISPLACEMENT_X,
     CARD_BACK,
+    CARD_DRAW_SOUND, CARD_DRAW_VOLUME, GAME_WON_VOLUME, PLAYER_GAME_WON_SOUND, DEALER_GAME_WON_SOUND
 )
 from enum import Enum
 
@@ -85,9 +86,12 @@ class Deck:
 class Hand:
     def __init__(self):
         self.cards = []
+        self.card_draw_sound = pygame.mixer.Sound("assets/sounds/card_draw.wav")
+        self.card_draw_sound.set_volume(CARD_DRAW_VOLUME)
 
     def add_card(self, card):
         self.cards.append(card)
+        self.card_draw_sound.play()
 
     def calculate_total(self):
         total_points = 0
@@ -104,6 +108,9 @@ class Hand:
             ace_count -= 1
 
         return total_points
+    
+    def make_hidden_card_reveal_sound(self):
+        self.card_draw_sound.play()
 
     def __repr__(self):
         return str(self.cards)
@@ -114,11 +121,19 @@ class Hand:
 
 
 class Person:
-    def __init__(self, role, name):
-        self.role = role # player or dealer
-        self.name = name
+    def __init__(self, role):
+        if role not in ('player', 'dealer'):
+            raise ValueError("Role must be 'player' or 'dealer'")
+        
+        self.role = role
         self.hand = Hand()
         self.games_won = 0
+
+        if self.role == 'player':
+            self.win_sound = pygame.mixer.Sound(PLAYER_GAME_WON_SOUND)
+        else:
+            self.win_sound = pygame.mixer.Sound(DEALER_GAME_WON_SOUND)
+        self.win_sound.set_volume(GAME_WON_VOLUME)
 
     def receive_card(self, deck):
         card = deck.deal_card()
@@ -130,8 +145,12 @@ class Person:
     def reset_hand(self):
         self.hand = Hand()
     
+    def win_game(self):
+        self.games_won += 1
+        self.win_sound.play()
+    
     def __repr__(self):
-        return self.name
+        return self.role
     
 
 class TextBoxController:
@@ -284,3 +303,4 @@ class GameManager():
         self.state = GameState.INTRO
         self.flags = GameFlags()
         self.deck = Deck()
+        self.current_music = None

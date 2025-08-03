@@ -62,3 +62,15 @@ CARD_BACK = pygame.transform.smoothscale(
     (CARD_WIDTH, CARD_HEIGHT)
 )
 
+# Music settings
+MUSIC_VOLUME = 0.5
+INTRO_MUSIC = "assets/music/intro.mp3"
+MAIN_MUSIC = "assets/music/main.mp3"
+
+# Sounds settings
+CARD_DRAW_VOLUME = 0.3
+CARD_DRAW_SOUND = "assets/sounds/card_draw.wav"
+GAME_WON_VOLUME = 0.65
+PLAYER_GAME_WON_SOUND = "assets/sounds/player_game_won.wav"
+DEALER_GAME_WON_SOUND = "assets/sounds/dealer_game_won.wav"
+
