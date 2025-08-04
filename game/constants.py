@@ -11,7 +11,7 @@ class Display:
     FONT_NAME_SMALL: str = 'lucidaconsole'
     FONT_SIZE: int = 30
     FONT_SIZE_SMALL: int = 24
-    BACKGROUND = pygame.image.load("assets/table.png")
+    BACKGROUND = pygame.image.load("assets/table/table.png")
 
 @dataclass(frozen=True)
 class Colours:
