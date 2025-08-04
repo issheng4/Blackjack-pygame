@@ -8,6 +8,7 @@ class Display:
     WIDTH: int = 1280
     HEIGHT: int = 720
     FONT_NAME: str = 'lucidaconsole'
+    FONT_NAME_SMALL: str = 'lucidaconsole'
     FONT_SIZE: int = 30
     FONT_SIZE_SMALL: int = 24
     BACKGROUND = pygame.image.load("assets/table.png")
@@ -59,6 +60,6 @@ class Scoreboard:
     TITLE_Y: int = 30
     PLAYER_Y: int = 60
     DEALER_Y: int = 90
-    
+
 
 

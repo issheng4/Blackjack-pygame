@@ -1,7 +1,7 @@
 import logging
 import pygame
 from .constants import Display, Colours, CardLayout, Audio, Scoreboard
-from .dialogue import *
+from .dialogue import DialogueStrings
 from .game_manager import GameManager
 from .game_state import GameState
 from .person import Person
@@ -17,7 +17,7 @@ class GameController:
         self.screen = pygame.display.set_mode((Display.WIDTH, Display.HEIGHT))
         pygame.display.set_caption("Blackjack")
         self.font = pygame.font.SysFont(Display.FONT_NAME, Display.FONT_SIZE)
-        self.font_small = pygame.font.SysFont(Display.FONT_NAME, Display.FONT_SIZE_SMALL)
+        self.font_small = pygame.font.SysFont(Display.FONT_NAME_SMALL, Display.FONT_SIZE_SMALL)
         self.clock = pygame.time.Clock()
         pygame.mixer.init()
 
@@ -114,12 +114,12 @@ class GameController:
 
     def handle_dealing_input(self, event: pygame.event.Event) -> None:
         """Handles input during the dealing phase."""
-        if not self.flags.has_started_dealing:
+        if not self.flags.dealing_started:
             pygame.time.set_timer(self.DEAL_PLAYER_CARD_1, 600, loops=1)
             pygame.time.set_timer(self.DEAL_DEALER_CARD_1, 900, loops=1)
             pygame.time.set_timer(self.DEAL_PLAYER_CARD_2, 1200, loops=1)
             pygame.time.set_timer(self.DEAL_DEALER_CARD_2, 1500, loops=1)
-            self.flags.has_started_dealing = True
+            self.flags.dealing_started = True
             logging.info("Starting initial deal")
 
         if self.MANUAL_HAND_FOR_TESTING:
@@ -162,16 +162,16 @@ class GameController:
             return
 
         # Handle bust, blackjack, and stand cases with minimal logging
-        if self.flags.player_bust_lines_set or self.flags.player_blackjack_stage or self.flags.player_stands_lines_set:
+        if self.flags.dialogue.player_bust_lines_set or self.flags.player_blackjack_status or self.flags.dialogue.player_stands_lines_set:
             result: str = self.textbox.handle_dialogue_input(event)
             if result == 'done':
-                if self.flags.player_bust_lines_set:
+                if self.flags.dialogue.player_bust_lines_set:
                     logging.info("Player bust - Dealer wins")
-                self.game_manager.state = GameState.RESET if not self.flags.player_stands_lines_set else GameState.DEALER_TURN
+                self.game_manager.state = GameState.RESET if not self.flags.dialogue.player_stands_lines_set else GameState.DEALER_TURN
             return
 
         # Hit or Stand phase
-        if not self.flags.player_stands_lines_ready and self.textbox.line_fully_displayed:
+        if not self.flags.dialogue.player_stands_lines_ready and self.textbox.line_fully_displayed:
             if event.key == pygame.K_h:
                 try:
                     self.player.receive_card(self.game_manager.deck)
@@ -180,7 +180,7 @@ class GameController:
                 except Exception as e:
                     logging.error(f"Error hitting: {e}")
             elif event.key == pygame.K_s:
-                self.flags.player_stands_lines_ready = True
+                self.flags.dialogue.player_stands_lines_ready = True
                 logging.info(f"Player stands - Final hand: {self.player.hand} ({self.player.hand.total})")
 
     def handle_dealer_turn_input(self, event: pygame.event.Event) -> None:
@@ -214,20 +214,20 @@ class GameController:
         """Handles input during the resolution phase."""
         result: str = self.textbox.handle_dialogue_input(event)
         if result == 'done':
-            if not self.flags.review_hands_lines_ready:
+            if not self.flags.dialogue.review_hands_lines_ready:
                 logging.info("Resolution dialogue finished. Resetting game state.")
                 self.game_manager.state = GameState.RESET
-            elif not self.flags.endgame_lines_ready:
-                self.flags.endgame_lines_ready = True
+            elif not self.flags.dialogue.endgame_lines_ready:
+                self.flags.dialogue.endgame_lines_ready = True
             else:
                 logging.info("Endgame dialogue finished. Resetting game state.")
                 self.game_manager.state = GameState.RESET
 
     def update_intro(self, now: int) -> None:
         """Updates the intro dialogue animation."""
-        if not self.flags.intro_lines_set:
-            self.textbox.set_lines(INTRO_DIALOGUE)
-            self.flags.intro_lines_set = True
+        if not self.flags.dialogue.intro_lines_set:
+            self.textbox.set_lines(DialogueStrings.Intro.SEQUENCE)
+            self.flags.dialogue.intro_lines_set = True
             logging.info("Intro dialogue set.")
         self.textbox.animate(now)
 
@@ -243,106 +243,106 @@ class GameController:
 
     def update_dealing(self, now: int) -> None:
         """Updates the dealing phase animation."""
-        if not self.flags.dealing_lines_set:
-            self.textbox.set_lines(DEALING_TEXT, show_arrow=False)
-            self.flags.dealing_lines_set = True
+        if not self.flags.dialogue.dealing_lines_set:
+            self.textbox.set_lines(DialogueStrings.Dealing.BASIC, show_arrow=False)
+            self.flags.dialogue.dealing_lines_set = True
             logging.info("Dealing dialogue set.")
         self.textbox.animate(now)
 
     def update_player_turn(self, now: int) -> None:
         """Updates the player's turn logic and dialogue."""
         if len(self.player.hand.cards) == 2 and self.player.hand.total == 21:
-            if not self.flags.player_blackjack_stage:
-                self.flags.player_blackjack_stage = 'start'
-            if self.flags.player_blackjack_stage == 'start':
+            if not self.flags.player_blackjack_status:
+                self.flags.player_blackjack_status = 'start'
+            if self.flags.player_blackjack_status == 'start':
                 # Dealer cannot have blackjack
                 if self.dealer.hand.cards[0].value not in ('10', 'J', 'Q', 'K', 'A'):
-                    self.textbox.set_lines(PLAYER_BLACKJACK_WIN)
-                    self.flags.player_blackjack_stage = 'done'
+                    self.textbox.set_lines(DialogueStrings.Dealing.PLAYER_BLACKJACK)
+                    self.flags.player_blackjack_status = 'done'
                     self.player.win_game()
                     logging.info("Player wins with blackjack.")
                 else:
-                    self.textbox.set_lines(PLAYER_BLACKJACK_DEALER_CHECK)
-                    self.flags.player_blackjack_stage = 'reveal'
+                    self.textbox.set_lines(DialogueStrings.Dealing.PLAYER_BLACKJACK_DEALER_CHECK)
+                    self.flags.player_blackjack_status = 'reveal'
                     logging.info("Player blackjack, checking dealer for blackjack.")
-            elif self.flags.player_blackjack_stage == 'reveal':
+            elif self.flags.player_blackjack_status == 'reveal':
                 if self.textbox.line_fully_displayed and self.textbox.current_line_index == 3:
                     self.flags.dealer_second_card_visible = True
                     if len(self.dealer.hand.cards) == 2 and self.dealer.hand.total == 21:
-                        self.textbox.set_lines(DEALER_ALSO_BLACKJACK)
+                        self.textbox.set_lines(DialogueStrings.Dealing.DEALER_ALSO_BLACKJACK)
                         logging.info("Dealer also has blackjack. Draw.")
                     else:
-                        self.textbox.set_lines(DEALER_NO_BLACKJACK)
+                        self.textbox.set_lines(DialogueStrings.Dealing.DEALER_NO_BLACKJACK)
                         self.player.win_game()
                         logging.info("Player wins, dealer does not have blackjack.")
-                    self.flags.player_blackjack_stage = 'done'
+                    self.flags.player_blackjack_status = 'done'
             self.textbox.animate(now)
             return
         if self.player.hand.total > 21:
-            if not self.flags.player_bust_lines_set:
-                self.textbox.set_lines(PLAYER_BUST)
-                self.flags.player_bust_lines_set = True
+            if not self.flags.dialogue.player_bust_lines_set:
+                self.textbox.set_lines(DialogueStrings.PlayerTurn.BUST)
+                self.flags.dialogue.player_bust_lines_set = True
                 self.dealer.win_game()
                 logging.info("Player bust. Dealer wins.")
-        elif not self.flags.player_turn_lines_set:
-            self.textbox.set_lines(HIT_OR_STAND_INPUT, show_arrow=False)
-            self.flags.player_turn_lines_set = True
+        elif not self.flags.dialogue.player_turn_lines_set:
+            self.textbox.set_lines(DialogueStrings.PlayerTurn.HIT_OR_STAND, show_arrow=False)
+            self.flags.dialogue.player_turn_lines_set = True
             logging.info("Player turn dialogue set.")
-        elif self.flags.player_stands_lines_ready and not self.flags.player_stands_lines_set:
-            self.textbox.set_lines(PLAYER_STANDS)
-            self.flags.player_stands_lines_set = True
+        elif self.flags.dialogue.player_stands_lines_ready and not self.flags.dialogue.player_stands_lines_set:
+            self.textbox.set_lines(DialogueStrings.PlayerTurn.STAND)
+            self.flags.dialogue.player_stands_lines_set = True
             logging.info("Player stands dialogue set.")
         self.textbox.animate(now)
 
     def update_dealer_turn(self, now: int) -> None:
         """Updates the dealer's turn logic and dialogue."""
-        if not self.flags.dealer_turn_lines_set:
-            self.textbox.set_lines(DEALER_TURN_START, show_arrow=False)
-            self.flags.dealer_turn_lines_set = True
+        if not self.flags.dialogue.dealer_turn_lines_set:
+            self.textbox.set_lines(DialogueStrings.DealerTurn.START, show_arrow=False)
+            self.flags.dialogue.dealer_turn_lines_set = True
             logging.info("Dealer turn dialogue set.")
         self.textbox.animate(now)
 
     def update_resolution(self, now: int) -> None:
         """Updates the resolution phase logic and dialogue."""
         if len(self.dealer.hand.cards) == 2 and self.dealer.hand.total == 21:
-            if not self.flags.dealer_blackjack_lines_set:
-                self.textbox.set_lines(DEALER_WINS_BLACKJACK)
-                self.flags.dealer_blackjack_lines_set = True
+            if not self.flags.dialogue.dealer_blackjack_lines_set:
+                self.textbox.set_lines(DialogueStrings.DealerTurn.WINS_BLACKJACK)
+                self.flags.dialogue.dealer_blackjack_lines_set = True
                 self.dealer.win_game()
                 logging.info("Dealer wins with blackjack")
         elif self.dealer.hand.total > 21:
-            if not self.flags.dealer_bust_lines_set:
-                self.textbox.set_lines(DEALER_BUST)
-                self.flags.dealer_bust_lines_set = True
+            if not self.flags.dialogue.dealer_bust_lines_set:
+                self.textbox.set_lines(DialogueStrings.DealerTurn.BUST)
+                self.flags.dialogue.dealer_bust_lines_set = True
                 self.player.win_game()
                 logging.info("Dealer bust. Player wins.")
         else:
-            self.flags.review_hands_lines_ready = True
-        if self.flags.review_hands_lines_ready and not self.flags.review_hands_lines_set:
+            self.flags.dialogue.review_hands_lines_ready = True
+        if self.flags.dialogue.review_hands_lines_ready and not self.flags.dialogue.review_hands_lines_set:
             review_text = [
-                REVIEW_HANDS_TEMPLATE[0],
-                REVIEW_HANDS_TEMPLATE[1].format(self.player.hand.total, self.dealer.hand.total)
+                DialogueStrings.Resolution.REVIEW_TEMPLATE[0],
+                DialogueStrings.Resolution.REVIEW_TEMPLATE[1].format(self.player.hand.total, self.dealer.hand.total)
             ]
             self.textbox.set_lines(review_text)
-            self.flags.review_hands_lines_set = True
+            self.flags.dialogue.review_hands_lines_set = True
             logging.info("Reviewing hands.")
-        elif self.flags.endgame_lines_ready:
+        elif self.flags.dialogue.endgame_lines_ready:
             if self.player.hand.total > self.dealer.hand.total:
-                if not self.flags.player_wins_lines_set:
-                    self.textbox.set_lines(PLAYER_WINS_HAND)
-                    self.flags.player_wins_lines_set = True
+                if not self.flags.dialogue.player_wins_lines_set:
+                    self.textbox.set_lines(DialogueStrings.Resolution.PLAYER_WINS)
+                    self.flags.dialogue.player_wins_lines_set = True
                     self.player.win_game()
                     logging.info(f"Player wins {self.player.hand.total} vs {self.dealer.hand.total}")
             elif self.player.hand.total < self.dealer.hand.total:
-                if not self.flags.dealer_wins_lines_set:
-                    self.textbox.set_lines(DEALER_WINS_HAND)
-                    self.flags.dealer_wins_lines_set = True
+                if not self.flags.dialogue.dealer_wins_lines_set:
+                    self.textbox.set_lines(DialogueStrings.Resolution.DEALER_WINS)
+                    self.flags.dialogue.dealer_wins_lines_set = True
                     self.dealer.win_game()
                     logging.info(f"Dealer wins {self.dealer.hand.total} vs {self.player.hand.total}")
             else:
-                if not self.flags.game_draw_lines_set:
-                    self.textbox.set_lines(GAME_DRAW)
-                    self.flags.game_draw_lines_set = True
+                if not self.flags.dialogue.game_draw_lines_set:
+                    self.textbox.set_lines(DialogueStrings.Resolution.DRAW)
+                    self.flags.dialogue.game_draw_lines_set = True
                     logging.info("Game is a draw.")
         self.textbox.animate(now)
 
