@@ -34,7 +34,7 @@ class GameFlags:
     def reset(self) -> None:
         """Reset all flags to their initial state."""
         self.dealing_started = False
-        self.dealer_card_visible = False
+        self.dealer_second_card_visible = False
         self.player_blackjack_status = None
         self.dealer_turn_status = None
         self.dialogue = DialogueFlags()
@@ -42,6 +42,6 @@ class GameFlags:
     def __repr__(self) -> str:
         """Return string representation for debugging."""
         return (f"GameFlags(dealing={self.dealing_started}, "
-                f"dealer_card={self.dealer_card_visible}, "
+                f"dealer_card={self.dealer_second_card_visible}, "
                 f"blackjack={self.player_blackjack_status}, "
                 f"dealer_turn={self.dealer_turn_status})")

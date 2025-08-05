@@ -5,12 +5,12 @@
 Fully functional Blackjack game built using Python and Pygame. Play against a computer dealer in this classic-RPG-style card game.
 
 ## Contents
-- [Features] (#features)
-- [Requirements] (#requirements)
-- [How to run] (#how-to-run)
-- [How to play] (#how-to-play)
-- [Project structure] (#project-structure)
-- [Contribution] (#contribution)
+- [Features](#features)
+- [Requirements](#requirements)
+- [How to run](#how-to-run)
+- [How to play](#how-to-play)
+- [Project structure](#project-structure)
+- [Contribution](#contribution)
 
 ## Features
 - Player vs dealer Blackjack logic
@@ -31,10 +31,11 @@ Fully functional Blackjack game built using Python and Pygame. Play against a co
 3. Install dependencies `pip install requirements.txt`
 4. Run the game `python main.py`
 
-# How to play
+## How to play
 The game is keyboard-based. Progress through the dialogue with any key (`Esc` to skip the intro dialogue) and, during the gameplay, `H` to hit and `S` to stand. The aim is to win more games than the dealer.
 
 ## Project structure
+```
 blackjack/
 |── main.py
 |── game/
@@ -59,6 +60,7 @@ blackjack/
 |
 |── requirements.txt
 └── README.md
+```
 
 ## Contribution
 Feel free to use, modify and contribute to this project for learning or your own purposes. Card assets are open source. Music composed and produced by me - please contact me if you want to reuse it.

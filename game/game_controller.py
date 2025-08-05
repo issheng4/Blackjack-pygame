@@ -15,7 +15,7 @@ class GameController:
         # Pygame setup
         pygame.init()
         self.screen = pygame.display.set_mode((Display.WIDTH, Display.HEIGHT))
-        pygame.display.set_caption("Blackjack")
+        pygame.display.set_caption("Blackjack by issheng4")
         self.font = pygame.font.SysFont(Display.FONT_NAME, Display.FONT_SIZE)
         self.font_small = pygame.font.SysFont(Display.FONT_NAME_SMALL, Display.FONT_SIZE_SMALL)
         self.clock = pygame.time.Clock()
@@ -50,9 +50,9 @@ class GameController:
         # Hand for testing
         self.MANUAL_HAND_FOR_TESTING: bool = False
         self.TEST_PLAYER_CARD_1: Card = Card('A', 'spades')
-        self.TEST_PLAYER_CARD_2: Card = Card('9', 'spades')
+        self.TEST_PLAYER_CARD_2: Card = Card('K', 'spades')
         self.TEST_DEALER_CARD_1: Card = Card('A', 'spades')
-        self.TEST_DEALER_CARD_2: Card = Card('A', 'spades')
+        self.TEST_DEALER_CARD_2: Card = Card('K', 'spades')
 
     def handle_events(self) -> bool:
         """Handles all pygame events. Returns False if game should quit."""
@@ -161,7 +161,7 @@ class GameController:
         if event.type != pygame.KEYDOWN:
             return
 
-        # Handle bust, blackjack, and stand cases with minimal logging
+        # Handle bust, blackjack, and stand cases
         if self.flags.dialogue.player_bust_lines_set or self.flags.player_blackjack_status or self.flags.dialogue.player_stands_lines_set:
             result: str = self.textbox.handle_dialogue_input(event)
             if result == 'done':
