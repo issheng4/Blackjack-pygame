@@ -2,7 +2,7 @@
 
 #### Video demo: https://youtu.be/mmJG1hARnwg
 
-Fully functional Blackjack game built using Python and Pygame. Play against a computer dealer in this classic-card game with a style that's reminiscent of the early RPG games for PC.
+Fully functional Blackjack game built using Python and Pygame. Play against a computer dealer in this classic card game with a style that's reminiscent of the early RPG games for PC.
 
 ## Contents
 - [Features](#features)
