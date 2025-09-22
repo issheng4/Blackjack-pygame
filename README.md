@@ -14,7 +14,7 @@ Fully functional Blackjack game built using Python and Pygame. Play against a co
 ## Video demo
 https://youtu.be/mmJG1hARnwg
 
-[![Watch the video demo](https://img.youtube.com/vi/mmJG1hARnwg/0.jpg)](https://www.youtube.com/watch?v=_mmJG1hARnwg)
+[![Watch the video demo](https://img.youtube.com/vi/mmJG1hARnwg/0.jpg)](https://www.youtube.com/mmJG1hARnwg)
 
 ## Features
 - Player vs dealer Blackjack logic
